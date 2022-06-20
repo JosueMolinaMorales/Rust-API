@@ -1,6 +1,7 @@
 #[macro_use] extern crate rocket;
 
-mod auth;
+pub mod auth;
+pub mod drivers;
 
 #[get("/")]
 fn index() -> &'static str {
@@ -9,6 +10,8 @@ fn index() -> &'static str {
 
 #[launch]
 fn rocket() -> _ {
+    connect_to_db();
+
     rocket::build()
     .mount("/", routes![index])
     .mount("/auth", routes![
@@ -16,4 +19,8 @@ fn rocket() -> _ {
         auth::register,
         auth::get_account
     ])
+}
+
+async fn connect_to_db() {
+    let client = drivers::mongodb::Mongo_client::new().connect().await;
 }

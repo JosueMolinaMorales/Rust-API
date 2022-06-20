@@ -1,3 +1,4 @@
+
 #[post("/login")]
 pub fn login() -> &'static str {
     "Login works!"
