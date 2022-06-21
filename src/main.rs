@@ -1,5 +1,8 @@
 #[macro_use] extern crate rocket;
+extern crate dotenv;
 
+use dotenv::dotenv;
+pub mod shared;
 pub mod auth;
 pub mod drivers;
 
@@ -9,18 +12,18 @@ fn index() -> &'static str {
 }
 
 #[launch]
-fn rocket() -> _ {
-    connect_to_db();
+async fn rocket() -> _ {
+    dotenv().ok();
+
+    let mut db = drivers::mongodb::Mongo_client::new();
+    db.connect().await;
 
     rocket::build()
+    .manage(db)
     .mount("/", routes![index])
     .mount("/auth", routes![
         auth::login,
         auth::register,
         auth::get_account
     ])
-}
-
-async fn connect_to_db() {
-    let client = drivers::mongodb::Mongo_client::new().connect().await;
 }
