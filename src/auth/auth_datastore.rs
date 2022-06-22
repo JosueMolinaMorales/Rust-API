@@ -1,0 +1,49 @@
+/*
+    Functions to implement:
+    - Does Email Exist?
+    - Does Username Exist?
+    - Insert new User
+    - Get a User
+*/
+use rocket::State;
+use crate::{shared::types::{User, ApiErrors}, drivers::mongodb::MongoClient};
+
+pub struct AuthDatastore<'r> {
+    db: &'r State<MongoClient>
+}
+
+impl <'r> AuthDatastore<'r> {
+    pub fn build(db: &State<MongoClient>) -> AuthDatastore {
+        AuthDatastore { db }
+    }
+
+    pub fn email_exists(&self, email: &String) -> bool {
+        match self.db.get_client()
+        .database("personal-api")
+        .collection::<User>("users")
+        .count_documents(filter, options) {
+            Ok(val) => {},
+            Err(err) => {}
+        }
+    }
+    
+    pub fn username_exists(&self, username: &String) -> bool {
+        false
+    }
+    
+    pub async fn insert_user(&self, user: &User) -> Result<(), ApiErrors<'r>>{
+        match self.db.get_client()
+        .database("personal-api")
+        .collection::<User>("users")
+        .insert_one(user, None).await {
+            Ok(_) => {Ok(())},
+            Err(_) => {
+                Err(ApiErrors::ServerError("There was an issue storing the user"))
+            }
+        }
+    }
+    
+    pub fn get_user(username: String) -> User{
+        User { firstname: String::new(), lastname: String::new(), email: String::new(), username: String::new(), password: String::new() }
+    }
+}

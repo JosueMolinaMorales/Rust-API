@@ -2,6 +2,7 @@
 extern crate dotenv;
 
 use dotenv::dotenv;
+use auth::auth_routehandler;
 pub mod shared;
 pub mod auth;
 pub mod drivers;
@@ -15,15 +16,14 @@ fn index() -> &'static str {
 async fn rocket() -> _ {
     dotenv().ok();
 
-    let mut db = drivers::mongodb::Mongo_client::new();
+    let mut db = drivers::mongodb::MongoClient::new();
     db.connect().await;
 
     rocket::build()
     .manage(db)
     .mount("/", routes![index])
     .mount("/auth", routes![
-        auth::login,
-        auth::register,
-        auth::get_account
+        auth_routehandler::login,
+        auth_routehandler::register,
     ])
 }
