@@ -1,3 +1,4 @@
+use mongodb::bson::doc;
 /*
     Functions to implement:
     - Does Email Exist?
@@ -17,13 +18,17 @@ impl <'r> AuthDatastore<'r> {
         AuthDatastore { db }
     }
 
-    pub fn email_exists(&self, email: &String) -> bool {
+    pub async fn email_exists(&self, email: &String) -> Result<bool, ApiErrors<'_>> {
         match self.db.get_client()
         .database("personal-api")
         .collection::<User>("users")
-        .count_documents(filter, options) {
-            Ok(val) => {},
-            Err(err) => {}
+        .count_documents(doc!{ "email": email }, None).await {
+            Ok(val) => { 
+                Ok(val != 0)
+            },
+            Err(err) => {
+                Err(ApiErrors::ServerError("Error"))
+            }
         }
     }
     

@@ -1,11 +1,18 @@
 
 use rocket::serde::{Deserialize, Serialize};
 
+#[derive(Responder)]
 pub enum ApiErrors<'a> {
     ServerError(&'a str),
     ClientError(&'a str),
     BadRequest(&'a str),
     Forbidden(&'a str)
+}
+
+impl ApiErrors<'_> {
+    pub fn get_error(&self) -> &str {
+        self
+    }
 }
 
 #[derive(Deserialize)]

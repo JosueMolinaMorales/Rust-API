@@ -20,7 +20,7 @@ impl <'r> AuthComponent<'r> {
         /*
             Check if email exists -> check if email exists -> hash password -> insert user
         */
-        if self.datastore.email_exists(&register_form.email) {
+        if self.datastore.email_exists(&register_form.email).await? {
             return Err(ApiErrors::BadRequest("Email already exists"));
         }
         if self.datastore.username_exists(&register_form.username) {

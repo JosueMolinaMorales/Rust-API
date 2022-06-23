@@ -11,12 +11,12 @@ pub fn login() -> &'static str {
 }
 
 #[post("/register", data = "<registration_form>")]
-pub async fn register(db: &State<MongoClient>, mut registration_form: Json<RegistrationForm>) -> &str {
+pub async fn register(db: &State<MongoClient>, mut registration_form: Json<RegistrationForm>) -> Result<&str, ApiErrors<'_>> {
     let auth = AuthComponent::build(db);
 
     match auth.register(&mut registration_form.0).await {
-        Ok(val) => "User created!",
-        Err(err) => "There was an error"
+        Ok(val) => Ok("User created!"),
+        Err(err) => Err(format!("{}", err))
     }
 }
 
