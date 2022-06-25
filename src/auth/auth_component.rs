@@ -1,4 +1,4 @@
-use crate::{shared::types::{RegistrationForm, User, ApiErrors}, drivers::mongodb::MongoClient};
+use crate::{shared::types::{RegistrationForm, User, ApiErrors, LoginForm, AuthUser}, drivers::mongodb::MongoClient};
 
 use pwhash::bcrypt;
 use rocket::State;
@@ -16,15 +16,15 @@ impl <'r> AuthComponent<'r> {
         }
     }
 
-    pub async fn register<'s>(&'s self, register_form: &mut RegistrationForm) -> Result<User, ApiErrors<'s>> {
+    pub async fn register<'s>(&'s self, register_form: &mut RegistrationForm) -> Result<User, ApiErrors> {
         /*
             Check if email exists -> check if email exists -> hash password -> insert user
         */
         if self.datastore.email_exists(&register_form.email).await? {
-            return Err(ApiErrors::BadRequest("Email already exists"));
+            return Err(ApiErrors::BadRequest(String::from("Email already exists")));
         }
-        if self.datastore.username_exists(&register_form.username) {
-            return Err(ApiErrors::BadRequest("Username already exists"));
+        if self.datastore.username_exists(&register_form.username).await? {
+            return Err(ApiErrors::BadRequest(String::from("Username already exists")));
         }
     
         let hash_pwd: String = match bcrypt::hash(&register_form.password) {
@@ -32,7 +32,7 @@ impl <'r> AuthComponent<'r> {
                 hash
             },
             Err(_) => {
-                return Err(ApiErrors::ServerError("There was an error hashing the password"));
+                return Err(ApiErrors::ServerError(String::from("There was an error hashing the password")));
             }
         };
         register_form.password = hash_pwd;
@@ -49,5 +49,37 @@ impl <'r> AuthComponent<'r> {
     
         Ok(user)
     }
+
+    pub async fn login(&self, info: LoginForm) -> Result<AuthUser, ApiErrors> {
+        let user: User;
+        let err_msg = String::from("Username or password is incorrect");
+
+        match self.datastore.get_user(info.username).await {
+            Ok(res) => {
+                if let Some(a_user) = res {
+                    user = a_user
+                } else {
+                    return Err(ApiErrors::BadRequest(err_msg))
+                }
+            },
+            Err(err) => return Err(err)
+        }
+
+        // Match Password
+        if !bcrypt::verify(&info.password, &user.password) {
+            return Err(ApiErrors::BadRequest(err_msg))
+        }
+
+
+        Ok(
+            AuthUser {
+                email: user.email,
+                firstname: user.firstname,
+                lastname: user.lastname,
+                username: user.username
+            }
+        )
+    }
+
 }
 

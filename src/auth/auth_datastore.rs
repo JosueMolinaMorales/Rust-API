@@ -18,7 +18,7 @@ impl <'r> AuthDatastore<'r> {
         AuthDatastore { db }
     }
 
-    pub async fn email_exists(&self, email: &String) -> Result<bool, ApiErrors<'_>> {
+    pub async fn email_exists(&self, email: &String) -> Result<bool, ApiErrors> {
         match self.db.get_client()
         .database("personal-api")
         .collection::<User>("users")
@@ -27,28 +27,44 @@ impl <'r> AuthDatastore<'r> {
                 Ok(val != 0)
             },
             Err(err) => {
-                Err(ApiErrors::ServerError("Error"))
+                Err(ApiErrors::ServerError(err.to_string()))
             }
         }
     }
     
-    pub fn username_exists(&self, username: &String) -> bool {
-        false
+    pub async fn username_exists(&self, username: &String) -> Result<bool, ApiErrors> {
+        match self.db.get_client()
+        .database("personal-api")
+        .collection::<User>("users")
+        .count_documents(doc!{ "username": username }, None).await {
+            Ok(val) => {
+                Ok(val != 0)
+            },
+            Err(err) => {
+                Err(ApiErrors::ServerError(err.to_string()))
+            }
+        }
     }
     
-    pub async fn insert_user(&self, user: &User) -> Result<(), ApiErrors<'r>>{
+    pub async fn insert_user(&self, user: &User) -> Result<(), ApiErrors>{
         match self.db.get_client()
         .database("personal-api")
         .collection::<User>("users")
         .insert_one(user, None).await {
             Ok(_) => {Ok(())},
             Err(_) => {
-                Err(ApiErrors::ServerError("There was an issue storing the user"))
+                Err(ApiErrors::ServerError(String::from("There was an issue storing the user")))
             }
         }
     }
     
-    pub fn get_user(username: String) -> User{
-        User { firstname: String::new(), lastname: String::new(), email: String::new(), username: String::new(), password: String::new() }
+    pub async fn get_user(&self, username: String) -> Result<Option<User>, ApiErrors>{
+        match self.db.get_client()
+        .database("personal-api")
+        .collection::<User>("users")
+        .find_one(doc!{ "username": username }, None).await {
+            Ok(user) => Ok(user),
+            Err(err) => Err(ApiErrors::ClientError(err.to_string()))
+        }
     }
 }
