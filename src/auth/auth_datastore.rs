@@ -46,7 +46,7 @@ impl <'r> AuthDatastore<'r> {
         }
     }
     
-    pub async fn insert_user(&self, user: &User) -> Result<(), ApiErrors>{
+    pub async fn insert_user(&self, user: &User) -> Result<(), ApiErrors> {
         match self.db.get_client()
         .database("personal-api")
         .collection::<User>("users")
