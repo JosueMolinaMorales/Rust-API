@@ -1,5 +1,4 @@
 use crate::{shared::types::{RegistrationForm, User, ApiErrors, LoginForm, AuthUser}, drivers::mongodb::MongoClient};
-
 use pwhash::bcrypt;
 use rocket::State;
 

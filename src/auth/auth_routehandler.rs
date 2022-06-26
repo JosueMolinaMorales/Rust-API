@@ -1,6 +1,7 @@
 use crate::{shared::types::{ RegistrationForm, LoginForm }, drivers::mongodb::MongoClient};
 use mongodb::bson::doc;
 use rocket::{serde::json::Json, State};
+use validator::Validate;
 
 use super::auth_component::AuthComponent;
 
@@ -20,7 +21,12 @@ pub async fn login(db: &State<MongoClient>, login_form: Json<LoginForm>) -> Resu
 #[post("/register", data = "<registration_form>")]
 pub async fn register(db: &State<MongoClient>, mut registration_form: Json<RegistrationForm>) -> Result<&str, String> {
     let auth = AuthComponent::build(db);
-
+    match registration_form.0.validate() {
+        Ok(_) => {},
+        Err(err) => {
+            return Err(format!("{:?}", err.errors()))
+        }
+    };
     match auth.register(&mut registration_form.0).await {
         Ok(_) => Ok("User created!"),
         Err(err) => Err(err.get_error())

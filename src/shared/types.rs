@@ -1,5 +1,5 @@
-
 use rocket::serde::{Deserialize, Serialize};
+use validator::{Validate};
 
 #[derive(Responder)]
 pub enum ApiErrors {
@@ -20,16 +20,18 @@ impl ApiErrors {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Validate)]
 #[serde(crate="rocket::serde")]
-#[derive(Debug)]
 pub struct RegistrationForm {
     pub firstname: String,
     pub lastname: String,
+
+    #[validate(email)]
     pub email: String,
     pub username: String,
     pub password: String
 }
+
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(crate="rocket::serde")]

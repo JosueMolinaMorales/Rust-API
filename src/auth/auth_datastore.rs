@@ -1,11 +1,4 @@
 use mongodb::bson::doc;
-/*
-    Functions to implement:
-    - Does Email Exist?
-    - Does Username Exist?
-    - Insert new User
-    - Get a User
-*/
 use rocket::State;
 use crate::{shared::types::{User, ApiErrors}, drivers::mongodb::MongoClient};
 

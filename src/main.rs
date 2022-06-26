@@ -6,6 +6,7 @@ use auth::auth_routehandler;
 pub mod shared;
 pub mod auth;
 pub mod drivers;
+#[cfg(test)] mod tests;
 
 #[get("/")]
 fn index() -> &'static str {
