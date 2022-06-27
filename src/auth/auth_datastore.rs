@@ -57,7 +57,7 @@ impl <'r> AuthDatastore<'r> {
         .collection::<User>("users")
         .find_one(doc!{ "username": username }, None).await {
             Ok(user) => Ok(user),
-            Err(err) => Err(ApiErrors::ClientError(err.to_string()))
+            Err(err) => Err(ApiErrors::BadRequest(err.to_string()))
         }
     }
 }

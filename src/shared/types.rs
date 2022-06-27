@@ -1,19 +1,27 @@
 use rocket::serde::{Deserialize, Serialize};
-use validator::{Validate};
+use rocket::response::Responder;
+use validator::Validate;
 
 #[derive(Responder)]
 pub enum ApiErrors {
+    #[response(status = 500)]
     ServerError(String),
-    ClientError(String),
+
+    #[response(status = 400)]
     BadRequest(String),
-    Forbidden(String)
+
+    #[response(status = 403)]
+    Forbidden(String),
+
+    #[response(status = 401)]
+    Unauthorized(String)
 }
 
 impl ApiErrors {
     pub fn get_error(&self) -> String {
         match self {
             ApiErrors::BadRequest(err) => err.to_string(),
-            ApiErrors::ClientError(err) => err.clone(),
+            ApiErrors::Unauthorized(err) => err.clone(),
             ApiErrors::Forbidden(err) => err.clone(),
             ApiErrors::ServerError(err) => err.clone()
         }
@@ -43,7 +51,8 @@ pub struct User {
     pub password: String
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(crate="rocket::serde")]
 pub struct AuthUser {
     pub firstname: String,
     pub lastname: String,
@@ -51,9 +60,8 @@ pub struct AuthUser {
     pub username: String
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(crate="rocket::serde")]
-#[derive(Debug)]
 pub struct LoginForm {
     pub username: String,
     pub password: String
