@@ -15,7 +15,7 @@ impl <'r> AuthComponent<'r> {
         }
     }
 
-    pub async fn register<'s>(&'s self, register_form: &mut RegistrationForm) -> Result<User, ApiErrors> {
+    pub async fn register<'s>(&'s self, register_form: &mut RegistrationForm) -> Result<AuthUser, ApiErrors> {
         /*
             Check if email exists -> check if email exists -> hash password -> insert user
         */
@@ -45,8 +45,15 @@ impl <'r> AuthComponent<'r> {
         };
     
         self.datastore.insert_user(&user).await?;
+
+        let auth_user = AuthUser {
+            firstname: String::from(&register_form.firstname),
+            lastname: String::from(&register_form.lastname),
+            email: String::from(&register_form.email),
+            username: String::from(&register_form.username),
+        };
     
-        Ok(user)
+        Ok(auth_user)
     }
 
     pub async fn login(&self, info: LoginForm) -> Result<AuthUser, ApiErrors> {

@@ -19,7 +19,7 @@ pub async fn login(db: &State<MongoClient>, login_form: Json<LoginForm>) -> Resu
 }
 
 #[post("/register", data = "<registration_form>")]
-pub async fn register(db: &State<MongoClient>, mut registration_form: Json<RegistrationForm>) -> Result<&str, ApiErrors> {
+pub async fn register(db: &State<MongoClient>, mut registration_form: Json<RegistrationForm>) -> Result<Json<AuthUser>, ApiErrors> {
     let auth = AuthComponent::build(db);
     match registration_form.0.validate() {
         Ok(_) => {},
@@ -28,7 +28,7 @@ pub async fn register(db: &State<MongoClient>, mut registration_form: Json<Regis
         }
     };
     match auth.register(&mut registration_form.0).await {
-        Ok(_) => Ok("User created!"),
+        Ok(auth_user) => Ok(Json(auth_user)),
         Err(err) => Err(err)
     }
 }
