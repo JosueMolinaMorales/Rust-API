@@ -2,6 +2,14 @@ use mongodb::bson::doc;
 use rocket::State;
 use crate::{shared::types::{User, ApiErrors}, drivers::mongodb::MongoClient};
 
+#[async_trait]
+pub trait TAuthDatastore {
+    async fn email_exists(&self, email: &String) -> Result<bool, ApiErrors>;
+    async fn username_exists(&self, username: &String) -> Result<bool, ApiErrors>;
+    async fn insert_user(&self, user: &User) -> Result<(), ApiErrors>;
+    async fn get_user(&self, username: String) -> Result<Option<User>, ApiErrors>;
+}
+
 pub struct AuthDatastore<'r> {
     db: &'r State<MongoClient>
 }
@@ -10,8 +18,12 @@ impl <'r> AuthDatastore<'r> {
     pub fn build(db: &State<MongoClient>) -> AuthDatastore {
         AuthDatastore { db }
     }
+}
 
-    pub async fn email_exists(&self, email: &String) -> Result<bool, ApiErrors> {
+#[async_trait]
+impl <'r> TAuthDatastore for AuthDatastore<'r> {
+
+    async fn email_exists(&self, email: &String) -> Result<bool, ApiErrors> {
         match self.db.get_client()
         .database("personal-api")
         .collection::<User>("users")
@@ -25,7 +37,7 @@ impl <'r> AuthDatastore<'r> {
         }
     }
     
-    pub async fn username_exists(&self, username: &String) -> Result<bool, ApiErrors> {
+    async fn username_exists(&self, username: &String) -> Result<bool, ApiErrors> {
         match self.db.get_client()
         .database("personal-api")
         .collection::<User>("users")
@@ -39,7 +51,7 @@ impl <'r> AuthDatastore<'r> {
         }
     }
     
-    pub async fn insert_user(&self, user: &User) -> Result<(), ApiErrors> {
+    async fn insert_user(&self, user: &User) -> Result<(), ApiErrors> {
         match self.db.get_client()
         .database("personal-api")
         .collection::<User>("users")
@@ -51,13 +63,13 @@ impl <'r> AuthDatastore<'r> {
         }
     }
     
-    pub async fn get_user(&self, username: String) -> Result<Option<User>, ApiErrors>{
+    async fn get_user(&self, username: String) -> Result<Option<User>, ApiErrors>{
         match self.db.get_client()
         .database("personal-api")
-        .collection::<User>("users")
+        .collection("users")
         .find_one(doc!{ "username": username }, None).await {
             Ok(user) => Ok(user),
-            Err(err) => Err(ApiErrors::BadRequest(err.to_string()))
+            Err(err) => Err(ApiErrors::ServerError(err.to_string()))
         }
     }
 }

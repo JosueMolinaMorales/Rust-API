@@ -1,18 +1,15 @@
-use crate::{shared::types::{RegistrationForm, User, ApiErrors, LoginForm, AuthUser}, drivers::mongodb::MongoClient};
+use crate::shared::types::{RegistrationForm, User, ApiErrors, LoginForm, AuthUser};
 use pwhash::bcrypt;
-use rocket::State;
 
-use super::auth_datastore::AuthDatastore;
+use super::auth_datastore::{TAuthDatastore, AuthDatastore};
 
 pub struct AuthComponent<'r> {
     datastore: AuthDatastore<'r>
 }
 
 impl <'r> AuthComponent<'r> {
-    pub fn build(db: &State<MongoClient>) -> AuthComponent {
-        AuthComponent {
-            datastore: AuthDatastore::build(db)
-        }
+    pub fn new(datastore: AuthDatastore<'r>) -> AuthComponent<'r> {
+        AuthComponent { datastore }
     }
 
     pub async fn register<'s>(&'s self, register_form: &mut RegistrationForm) -> Result<AuthUser, ApiErrors> {

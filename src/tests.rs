@@ -1,34 +1,8 @@
-use crate::auth::auth_datastore::AuthDatastore;
-use crate::drivers::mongodb::MongoClient;
-use crate::shared::types::{RegistrationForm, ApiErrors, User};
+use crate::shared::types::RegistrationForm;
 
 use super::rocket;
-use rocket::State;
 use rocket::http::Status;
 use rocket::local::asynchronous::Client;
-use mockall::*;
-use mockall::predicate::*;
-
-#[async_trait]
-trait TAuthDatastore {
-    fn build(db: &State<MongoClient>) -> AuthDatastore;
-    async fn email_exists(&self, email: &String) -> Result<bool, ApiErrors>;
-    async fn username_exists(&self, username: &String) -> Result<bool, ApiErrors>;
-    async fn insert_user(&self, user: &User) -> Result<(), ApiErrors>;
-    async fn get_user(&self, username: String) -> Result<Option<User>, ApiErrors>;
-}
-
-mock!{
-    pub AuthDatastore {}
-    #[async_trait]
-    impl TAuthDatastore for AuthDatastore {
-        fn build(db: &State<MongoClient>) -> AuthDatastore<'static>;
-        async fn email_exists(&self, email: &String) -> Result<bool, ApiErrors>;
-        async fn username_exists(&self, username: &String) -> Result<bool, ApiErrors>;
-        async fn insert_user(&self, user: &User) -> Result<(), ApiErrors>;
-        async fn get_user(&self, username: String) -> Result<Option<User>, ApiErrors>;
-    }
-}
 
 #[rocket::async_test]
 async fn register_success() {
