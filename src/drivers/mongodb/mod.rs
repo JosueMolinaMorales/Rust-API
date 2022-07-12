@@ -2,6 +2,12 @@ use std::env;
 
 use mongodb::{ Client, options::ClientOptions };
 
+#[async_trait]
+pub trait TMongoClient {
+    async fn connect(&mut self);
+    async fn get_client(&self);
+}
+
 pub struct MongoClient {
     client: Option<mongodb::Client>
 }

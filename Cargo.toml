@@ -9,6 +9,7 @@ edition = "2021"
 dotenv = "0.15.0"
 pwhash = "1"
 mockall = "0.11.1"
+magic-crypt = "3.1.10"
 validator = { version = "0.15", features = ["derive"] }
 
 [dependencies.rocket]

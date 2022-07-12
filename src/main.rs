@@ -2,10 +2,11 @@
 extern crate dotenv;
 
 use dotenv::dotenv;
-use auth::auth_routehandler;
 pub mod shared;
 pub mod auth;
 pub mod drivers;
+pub mod password_manager;
+
 #[cfg(test)] mod tests;
 
 #[get("/")]
@@ -23,8 +24,6 @@ async fn rocket() -> _ {
     rocket::build()
     .manage(db)
     .mount("/", routes![index])
-    .mount("/auth", routes![
-        auth_routehandler::login,
-        auth_routehandler::register,
-    ])
+    .mount("/auth", auth::api())
+    .mount("/password/", password_manager::api())
 }
