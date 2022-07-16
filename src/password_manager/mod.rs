@@ -4,6 +4,7 @@ pub mod datastore;
 use rocket::State;
 
 use crate::drivers::mongodb::MongoClient;
+use crate::shared::jwt_service::Token;
 use crate::shared::types::PasswordRecord;
 use rocket::serde::json::Json;
 
@@ -13,8 +14,9 @@ pub async fn get_record(db: &State<MongoClient>) {
 }
 
 #[post("/", data="<record>")]
-pub async fn create_record<'a>(db: &State<MongoClient>, record: Json<PasswordRecord>) -> &'a str {
-    component::create_record(record.0, db).await;
+pub async fn create_record<'a>(db: &State<MongoClient>, record: Json<PasswordRecord>, id: Token) -> &'a str {
+    println!("{:?}", id);
+    component::create_record(db, record.0, id.id).await;
     "Created!"
 }
 

@@ -1,3 +1,4 @@
+use mongodb::bson::oid::ObjectId;
 use rocket::serde::{Deserialize, Serialize};
 use rocket::response::Responder;
 use validator::Validate;
@@ -5,6 +6,7 @@ use validator::Validate;
 #[derive(Responder)]
 #[derive(Serialize)]
 #[serde(crate="rocket::serde")]
+#[derive(Debug)]
 pub enum ApiErrors {
     #[response(status = 500)]
     ServerError(String),
@@ -45,6 +47,8 @@ pub struct RegistrationForm {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(crate="rocket::serde")]
 pub struct User {
+    #[serde(rename = "_id", skip_serializing_if="Option::is_none")]
+    pub id: Option<ObjectId>,
     pub name: String,
     pub email: String,
     pub username: String,
@@ -62,6 +66,8 @@ pub struct PartialUser {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate="rocket::serde")]
 pub struct AuthUser {
+    #[serde(rename = "_id", skip_serializing_if="Option::is_none")]
+    pub id: Option<ObjectId>,
     pub name: String,
     pub email: String,
     pub username: String
@@ -79,7 +85,8 @@ pub struct LoginForm {
 #[serde(crate="rocket::serde")]
 pub struct PasswordRecord {
     pub service: String, /* The Service the password belongs to */
+    pub password: String, /* The Password for the service */
     pub email: Option<String>, /* The email to login */
     pub username: Option<String>,
-    pub password: String
+    pub user_id: Option<String> /* The Object Id of the user who owns this record */
 }

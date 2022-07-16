@@ -26,15 +26,17 @@ pub async fn register(db: &State<MongoClient>, register_form: &mut RegistrationF
     register_form.password = hash_pwd;
 
     let user: User = User {
+        id: None,
         name: String::from(&register_form.name),
         email: String::from(&register_form.email),
         username: String::from(&register_form.username),
         password: String::from(&register_form.password)
     };
 
-    auth_datastore::insert_user(db, &user).await?;
+    let id = auth_datastore::insert_user(db, &user).await?;
 
     let auth_user = AuthUser {
+        id: Some(id),
         name: String::from(&register_form.name),
         email: String::from(&register_form.email),
         username: String::from(&register_form.username),
@@ -47,7 +49,7 @@ pub async fn login(db: &State<MongoClient>, info: LoginForm) -> Result<AuthUser,
     let user: User;
     let err_msg = String::from("Username or password is incorrect");
 
-    match auth_datastore::get_user(db, info.username).await {
+    match auth_datastore::get_user(db, &info.username).await {
         Ok(res) => {
             if let Some(a_user) = res {
                 user = a_user
@@ -66,6 +68,7 @@ pub async fn login(db: &State<MongoClient>, info: LoginForm) -> Result<AuthUser,
 
     Ok(
         AuthUser {
+            id: Some(user.id.clone().unwrap()),
             email: user.email,
             name: user.name,
             username: user.username

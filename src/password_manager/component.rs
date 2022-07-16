@@ -1,13 +1,13 @@
 use magic_crypt::{new_magic_crypt, MagicCryptTrait};
+use mongodb::bson::oid::ObjectId;
 use rocket::State;
 
-use crate::{shared::types::{PasswordRecord, ApiErrors}, drivers::mongodb::MongoClient, auth::auth_datastore};
+use crate::{shared::types::{PasswordRecord, ApiErrors}, drivers::mongodb::MongoClient};
 
 use super::datastore;
 
-pub(crate) async fn create_record(mut new_record: PasswordRecord, db: &State<MongoClient>) -> Result<(), ApiErrors> {
+pub(crate) async fn create_record(db: &State<MongoClient>, mut new_record: PasswordRecord, id: ObjectId) -> Result<(), ApiErrors> {
     // Validate email
-    // let user = auth_datastore
     // Get ObjectId
 
     // Encrypt Password with Symmetric Key

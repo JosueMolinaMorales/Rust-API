@@ -1,4 +1,4 @@
-use mongodb::bson::doc;
+use mongodb::bson::{doc, oid::ObjectId};
 use rocket::State;
 use crate::{shared::types::{User, ApiErrors}, drivers::mongodb::MongoClient};
 
@@ -30,24 +30,29 @@ pub async fn username_exists(db: &State<MongoClient>, username: &String) -> Resu
     }
 }
 
-pub async fn insert_user(db: &State<MongoClient>, user: &User) -> Result<(), ApiErrors> {
+pub async fn insert_user(db: &State<MongoClient>, user: &User) -> Result<ObjectId, ApiErrors> {
     match db.get_client()
     .database("personal-api")
     .collection::<User>("users")
     .insert_one(user, None).await {
-        Ok(_) => {Ok(())},
+        Ok(res) => {
+            Ok(res.inserted_id.as_object_id().unwrap())
+        },
         Err(_) => {
             Err(ApiErrors::ServerError(String::from("There was an issue storing the user")))
         }
     }
 }
 
-pub async fn get_user(db: &State<MongoClient>, username: String) -> Result<Option<User>, ApiErrors>{
+pub async fn get_user(db: &State<MongoClient>, username: &String) -> Result<Option<User>, ApiErrors>{
     match db.get_client()
     .database("personal-api")
     .collection::<User>("users")
     .find_one(doc!{ "username": username }, None).await {
-        Ok(user) => Ok(user),
+        Ok(user) => {
+            println!("{:?}", user);
+            Ok(user)
+        },
         Err(err) => Err(ApiErrors::BadRequest(err.to_string()))
     }
 }
