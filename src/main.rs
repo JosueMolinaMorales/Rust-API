@@ -1,6 +1,5 @@
 #[macro_use] extern crate rocket;
 extern crate dotenv;
-
 use dotenv::dotenv;
 use auth::auth_routehandler;
 pub mod shared;
