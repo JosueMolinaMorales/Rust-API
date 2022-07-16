@@ -14,22 +14,3 @@ pub async fn insert_record(db: &State<MongoClient>, record: PasswordRecord) -> R
         }
     }
 }
-
-pub async fn get_user_email(db: &State<MongoClient>, email: &String) -> Result<(), ApiErrors> {
-    let options = FindOneOptions::builder()
-    .projection(doc!{})
-    match db.get_client()
-    .database("personal-api")
-    .collection::<User>("records")
-    .find_one(doc!{ "email": email }, 
-            FindOneOptions::builder().projection(doc!{ "email": 1 }).build()).await {
-        Ok(res) => {
-            match res {
-                
-            }
-        },
-        Err(err) => {
-
-        }
-    }
-}
