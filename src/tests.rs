@@ -4,7 +4,6 @@ use super::rocket;
 use rocket::http::Status;
 use rocket::local::asynchronous::Client;
 
-
 #[rocket::async_test]
 async fn register_success() {
     let req_body = RegistrationForm {

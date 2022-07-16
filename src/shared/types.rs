@@ -3,6 +3,8 @@ use rocket::response::Responder;
 use validator::Validate;
 
 #[derive(Responder)]
+#[derive(Serialize)]
+#[serde(crate="rocket::serde")]
 pub enum ApiErrors {
     #[response(status = 500)]
     ServerError(String),
@@ -49,6 +51,14 @@ pub struct User {
     pub password: String
 }
 
+pub struct PartialUser {
+    pub firstname: Option<String>,
+    pub lastname: Option<String>,
+    pub email: Option<String>,
+    pub username: Option<String>,
+    pub password: Option<String>
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate="rocket::serde")]
 pub struct AuthUser {
@@ -61,5 +71,15 @@ pub struct AuthUser {
 #[serde(crate="rocket::serde")]
 pub struct LoginForm {
     pub username: String,
+    pub password: String
+}
+
+/* Password Structs */
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(crate="rocket::serde")]
+pub struct PasswordRecord {
+    pub service: String, /* The Service the password belongs to */
+    pub email: Option<String>, /* The email to login */
+    pub username: Option<String>,
     pub password: String
 }
