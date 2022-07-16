@@ -9,8 +9,7 @@ async fn register_success() {
     let req_body = RegistrationForm {
         email: "molinsa@dsa.com".to_string(),
         password: "Password".to_string(),
-        firstname: "Josue".to_string(),
-        lastname: "Morales".to_string(),
+        name: "Josue Morales".to_string(),
         username: "Testing123!".to_string()
     };
     let client = Client::tracked(super::rocket().await).await.unwrap();

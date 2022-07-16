@@ -33,8 +33,7 @@ impl ApiErrors {
 #[derive(Debug, Serialize, Deserialize, Validate)]
 #[serde(crate="rocket::serde")]
 pub struct RegistrationForm {
-    pub firstname: String,
-    pub lastname: String,
+    pub name: String,
 
     #[validate(email)]
     pub email: String,
@@ -46,8 +45,7 @@ pub struct RegistrationForm {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(crate="rocket::serde")]
 pub struct User {
-    pub firstname: String,
-    pub lastname: String,
+    pub name: String,
     pub email: String,
     pub username: String,
     pub password: String
@@ -64,8 +62,7 @@ pub struct PartialUser {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate="rocket::serde")]
 pub struct AuthUser {
-    pub firstname: String,
-    pub lastname: String,
+    pub name: String,
     pub email: String,
     pub username: String
 }
