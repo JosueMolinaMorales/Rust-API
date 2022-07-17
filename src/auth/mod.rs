@@ -17,10 +17,11 @@ pub struct AuthResponse {
 #[post("/login", data = "<login_form>")]
 pub async fn login(db: &State<MongoClient>, login_form: Json<LoginForm>) -> Result<Json<AuthResponse>, Json<ApiErrors>> {
     match auth_component::login(db, login_form.0).await {
-        Ok(user) => {
+        Ok(mut user) => {
             let id = user.id.clone().unwrap();
+            user.id = None;
             let response = AuthResponse {
-                user: AuthUser { id: None, name: user.name, email: user.email, username: user.username },
+                user,
                 token: sign_token(&id.to_string()).unwrap()
             };
             Ok(Json(response))
@@ -40,10 +41,11 @@ pub async fn register(db: &State<MongoClient>, mut registration_form: Json<Regis
         }
     };
     match auth_component::register(db, &mut registration_form.0).await {
-        Ok(user) => {
+        Ok(mut user) => {
             let id = user.id.clone().unwrap();
+            user.id = None;
             let response = AuthResponse {
-                user: AuthUser { id: None, name: user.name, email: user.email, username: user.username },
+                user,
                 token: sign_token(&id.to_string()).unwrap()
             };
             Ok(Json(response))

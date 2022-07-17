@@ -6,22 +6,23 @@ use crate::{shared::types::{PasswordRecord, ApiErrors}, drivers::mongodb::MongoC
 
 use super::datastore;
 
-pub(crate) async fn create_record(db: &State<MongoClient>, mut new_record: PasswordRecord, id: ObjectId) -> Result<(), ApiErrors> {
-    // Validate email
-    // Get ObjectId
-
+/**
+ * Create a password record
+ */
+pub(crate) async fn create_record(db: &State<MongoClient>, mut new_record: PasswordRecord, id: ObjectId) -> Result<ObjectId, ApiErrors> {
     // Encrypt Password with Symmetric Key
-    let mc = new_magic_crypt!("magickey", 256);
+    let mc = new_magic_crypt!("magickey", 256); // TODO: Make Key an env
     new_record.password = mc.encrypt_to_base64(&new_record.password);
 
+    new_record.user_id = Some(id);
     // Store record in database
     match datastore::insert_record(db, new_record).await {
-        Ok(_) => { Ok(()) },
+        Ok(id) => { Ok(id) },
         Err(err) => { Err(err) }
     }
 }
 
-pub fn update_record(record_id: String, db: &State<MongoClient>) {
+pub async fn update_record(record_id: ObjectId, db: &State<MongoClient>) {
     // Get the record
 
     // Check if the record exists
@@ -29,20 +30,27 @@ pub fn update_record(record_id: String, db: &State<MongoClient>) {
     // Update the record
 
     // Store the record
+
 }
 
-fn delete_record(record_id: String, db: &State<MongoClient>) {
-    // Get the record
-
-    // Check if the record exists
-
-    // Delete record
+pub async fn delete_record(db: &State<MongoClient>, record_id: String, user_id: ObjectId) -> Result<(), ApiErrors> {
+    datastore::delete_record(db, ObjectId::parse_str(record_id).unwrap(), user_id).await?;
+    Ok(())
 }
 
-fn get_record(record_id: String, db: &State<MongoClient>) {
+pub async fn get_record( db: &State<MongoClient>, record_id: String, user_id: ObjectId) -> Result<PasswordRecord, ApiErrors>{
     // Get the record
+    let record = datastore::get_record(
+        db, 
+        ObjectId::parse_str(record_id).unwrap(),
+        user_id
+    ).await?;
 
-    // Check if the record exists
-
-    // Return record
+    // Check if the record exists and return
+    match record {
+        None => Err(ApiErrors::NotFound("Record was not found".to_string())),
+        Some(rec) => {
+            Ok(rec)
+        }
+    }
 }
