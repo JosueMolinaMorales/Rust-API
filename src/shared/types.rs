@@ -103,6 +103,18 @@ pub struct PasswordRecord {
     pub user_id: Option<ObjectId> /* The Object Id of the user who owns this record */
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdatePasswordRecord {
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub password: Option<String>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub email: Option<String>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub username: Option<String>
+}
+
 pub fn serialize_object_id<S>(object_id: &Option<ObjectId>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
