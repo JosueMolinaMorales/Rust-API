@@ -25,8 +25,8 @@ pub fn get_token_from_header(auth_header: String) -> Option<String> {
  */
 pub fn sign_token(object_id: &String) -> Result<String, ApiErrors> {
     let key: Hmac<Sha256> = match Hmac::new_from_slice(b"some-secret") {
-        Ok(res) => {res},
-        Err(_) => { return Err(ApiErrors::ServerError("Issuing creating key".to_string()))}
+        Ok(res) => res,
+        Err(_) => return Err(ApiErrors::ServerError("Issuing creating key".to_string()))
     };
     let mut claim = BTreeMap::new();
     claim.insert("id".to_string(), object_id);
@@ -42,11 +42,11 @@ pub fn sign_token(object_id: &String) -> Result<String, ApiErrors> {
 pub fn verify_token(token: String) -> Result<ObjectId, ApiErrors> {
     let key: Hmac<Sha256> = match Hmac::new_from_slice(b"some-secret") {
         Ok(res) => res,
-        Err(_) => { return Err(ApiErrors::ServerError("Issue creating key".to_string())) }
+        Err(_) => return Err(ApiErrors::ServerError("Issue creating key".to_string()))
     };
 
     let claims: BTreeMap<String, String> = match token.verify_with_key(&key) {
-        Ok(token) => { token },
+        Ok(token) => token,
         Err(_) => { return Err(ApiErrors::Unauthorized("Token is invalid".to_string()))},
     };
 
@@ -63,19 +63,28 @@ impl<'r> FromRequest<'r> for Token {
     type Error = ApiErrors;
 
     async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error>{
-        match request.headers().get_one("Authorization"){
-            None => Outcome::Failure((Status::Unauthorized, ApiErrors::Unauthorized("Authorization Header Required".to_string()))),
-            Some(auth) => {
-                match get_token_from_header(auth.to_string()) {
-                    None => Outcome::Failure((Status::Unauthorized, ApiErrors::Unauthorized("Authorization Header Malformed".to_string()))),
-                    Some(token) => {
-                        match verify_token(token) {
-                            Err(_) => Outcome::Failure((Status::Unauthorized, ApiErrors::Unauthorized("Failed to verify token".to_string()))),
-                            Ok(id) => Outcome::Success(Token { id })
-                        }
-                    }
-                }
-            }
+        // Get Auth Header if exists
+        let auth_header = request.headers().get_one("Authorization");
+        if auth_header.is_none() {
+            return Outcome::Failure((Status::Unauthorized, ApiErrors::Unauthorized("Authorization Header Required".to_string())));
         }
+
+        // Get the token from header
+        let token = get_token_from_header(auth_header.unwrap().to_string());
+        if token.is_none() {
+            return Outcome::Failure((Status::Unauthorized, ApiErrors::Unauthorized("Authorization Header Malformed".to_string())));
+        }
+
+        // Verify the JWT
+        let id = verify_token(token.unwrap());
+        if id.is_err() {
+            return Outcome::Failure((Status::Unauthorized, ApiErrors::Unauthorized("Failed to verify token".to_string())));
+        }
+
+        // Return the token
+        let id = id.unwrap();
+        Outcome::Success(Token {
+            id
+        })
     }
 }

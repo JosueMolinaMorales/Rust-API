@@ -2,7 +2,7 @@ use crate::{shared::types::{RegistrationForm, User, ApiErrors, LoginForm, AuthUs
 use pwhash::bcrypt;
 use rocket::State;
 
-use super::auth_datastore::{ self };
+use super::auth_datastore;
 
 pub async fn register(db: &State<MongoClient>, register_form: &mut RegistrationForm) -> Result<AuthUser, ApiErrors> {
     /*
@@ -16,12 +16,9 @@ pub async fn register(db: &State<MongoClient>, register_form: &mut RegistrationF
     }
 
     let hash_pwd: String = match bcrypt::hash(&register_form.password) {
-        Ok(hash) => {
-            hash
-        },
-        Err(_) => {
-            return Err(ApiErrors::ServerError(String::from("There was an error hashing the password")));
-        }
+        Ok(hash) => hash,
+        Err(_) => return Err(ApiErrors::ServerError(String::from("There was an error hashing the password")))
+        
     };
     register_form.password = hash_pwd;
 
@@ -49,22 +46,16 @@ pub async fn login(db: &State<MongoClient>, info: LoginForm) -> Result<AuthUser,
     let user: User;
     let err_msg = String::from("Username or password is incorrect");
 
-    match auth_datastore::get_user(db, &info.username).await {
-        Ok(res) => {
-            if let Some(a_user) = res {
-                user = a_user
-            } else {
-                return Err(ApiErrors::BadRequest(err_msg))
-            }
-        },
-        Err(err) => return Err(err)
+    let res = auth_datastore::get_user(db, &info.username).await?;
+    if res.is_none() {
+        return Err(ApiErrors::BadRequest(err_msg))
     }
+    user = res.unwrap();
 
     // Match Password
     if !bcrypt::verify(&info.password, &user.password) {
         return Err(ApiErrors::BadRequest(err_msg))
     }
-
 
     Ok(
         AuthUser {

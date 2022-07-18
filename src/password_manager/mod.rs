@@ -12,26 +12,32 @@ use crate::shared::types::{PasswordRecord, ApiErrors, UpdatePasswordRecord};
 use rocket::serde::json::Json;
 
 #[get("/<id>")]
-pub async fn get_record(db: &State<MongoClient>, id: String, user_id: Token) -> Result<Json<PasswordRecord>, ApiErrors> {
+pub async fn get_record(
+    db: &State<MongoClient>, 
+    id: String, 
+    user_id: Token
+) -> Result<Json<PasswordRecord>, ApiErrors> {
     let record_id = match ObjectId::parse_str(id) {
         Ok(res) => res,
         Err(_) =>  return Err(ApiErrors::BadRequest("ID is not formatted correctly".to_string()))
     };
-    match component::get_record(db, record_id, user_id.id).await {
-        Ok(res) => {
-            Ok(Json(res))
-        },
-        Err(error) => Err(error)
-    }
+    
+    let res = component::get_record(db, record_id, user_id.id).await?;
+            
+    Ok(Json(res))
 }
 
 
 #[post("/", data="<record>")]
-pub async fn create_record(db: &State<MongoClient>, record: Json<PasswordRecord>, id: Token) -> Result<Json<Document>, ApiErrors> {
-    match component::create_record(db, record.0, id.id).await {
-        Ok(res) => Ok(Json(doc! { "id": res.to_string() })),
-        Err(error) => Err(error)
-    }
+pub async fn create_record(
+    db: &State<MongoClient>, 
+    record: Json<PasswordRecord>, 
+    id: Token
+) -> Result<Json<Document>, ApiErrors> {
+    let res = component::create_record(db, record.0, id.id).await?;
+    Ok(Json(doc! {
+        "id": res.to_string()
+    }))
 }
 
 #[patch("/<id>", data="<updated_record>")]
@@ -59,10 +65,9 @@ pub async fn delete_record(db: &State<MongoClient>, id: String, user_id: Token) 
         Ok(res) => res,
         Err(_) =>  return Err(ApiErrors::BadRequest("ID is not formatted correctly".to_string()))
     };
-    match component::delete_record(db, record_id, user_id.id).await {
-        Ok(_) => Ok(Status::NoContent),
-        Err(error) => Err(error)
-    }
+    component::delete_record(db, record_id, user_id.id).await?; 
+
+    Ok(Status::NoContent)
 }
 
 pub fn api() -> Vec<rocket::Route> {

@@ -1,13 +1,10 @@
 use mongodb::bson::oid::ObjectId;
-// use rocket::serde::{Deserialize, Serialize};
 use rocket::response::Responder;
 use validator::Validate;
 use serde::{Deserialize, Serialize, Serializer};
 
-#[derive(Responder)]
-#[derive(Serialize)]
+#[derive(Debug, Serialize, Responder)]
 #[serde(crate="rocket::serde")]
-#[derive(Debug)]
 pub enum ApiErrors {
     #[response(status = 500)]
     ServerError(String),
@@ -25,18 +22,6 @@ pub enum ApiErrors {
     NotFound(String)
 }
 
-impl ApiErrors {
-    pub fn get_error(&self) -> String {
-        match self {
-            ApiErrors::BadRequest(err) => err.to_string(),
-            ApiErrors::Unauthorized(err) => err.clone(),
-            ApiErrors::Forbidden(err) => err.clone(),
-            ApiErrors::ServerError(err) => err.clone(),
-            ApiErrors::NotFound(err) => err.clone()
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, Validate)]
 #[serde(crate="rocket::serde")]
 pub struct RegistrationForm {
@@ -52,7 +37,10 @@ pub struct RegistrationForm {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(crate="rocket::serde")]
 pub struct User {
-    #[serde(rename = "_id", skip_serializing_if="Option::is_none", serialize_with="serialize_object_id")]
+    #[serde(
+        rename = "_id", 
+        skip_serializing_if="Option::is_none"
+    )]
     pub id: Option<ObjectId>,
     pub name: String,
     pub email: String,
@@ -71,7 +59,7 @@ pub struct PartialUser {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate="rocket::serde")]
 pub struct AuthUser {
-    #[serde(rename = "_id", skip_serializing_if="Option::is_none", serialize_with="serialize_object_id")]
+    #[serde(rename = "_id", skip_serializing_if="Option::is_none")]
     pub id: Option<ObjectId>,
     pub name: String,
     pub email: String,

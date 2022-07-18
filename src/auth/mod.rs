@@ -1,6 +1,5 @@
 use rocket::serde::{Serialize, Deserialize};
 use rocket::{State, serde::json::Json};
-use validator::Validate;
 
 use crate::drivers::mongodb::MongoClient;
 use crate::shared::jwt_service::sign_token;
@@ -16,42 +15,27 @@ pub struct AuthResponse {
 
 #[post("/login", data = "<login_form>")]
 pub async fn login(db: &State<MongoClient>, login_form: Json<LoginForm>) -> Result<Json<AuthResponse>, Json<ApiErrors>> {
-    match auth_component::login(db, login_form.0).await {
-        Ok(mut user) => {
-            let id = user.id.clone().unwrap();
-            user.id = None;
-            let response = AuthResponse {
-                user,
-                token: sign_token(&id.to_string()).unwrap()
-            };
-            Ok(Json(response))
-        },
-        Err(err) => {
-            Err(Json(err))
-        }
-    }
+    let mut user = auth_component::login(db, login_form.0).await?;
+    let id = user.id.clone().unwrap();
+    user.id = None;
+    let response = AuthResponse {
+        user,
+        token: sign_token(&id.to_string())?
+    };
+    Ok(Json(response))
 }
 
 #[post("/register", data = "<registration_form>")]
 pub async fn register(db: &State<MongoClient>, mut registration_form: Json<RegistrationForm>) -> Result<Json<AuthResponse>, ApiErrors> {
-    match registration_form.0.validate() {
-        Ok(_) => {},
-        Err(_err) => {
-            return Err(ApiErrors::BadRequest(String::from("Invalid Request")))
-        }
+    let mut user = auth_component::register(db, &mut registration_form.0).await?;
+    let id = user.id.clone().unwrap();
+    user.id = None;
+    let response = AuthResponse {
+        user,
+        token: sign_token(&id.to_string()).unwrap()
     };
-    match auth_component::register(db, &mut registration_form.0).await {
-        Ok(mut user) => {
-            let id = user.id.clone().unwrap();
-            user.id = None;
-            let response = AuthResponse {
-                user,
-                token: sign_token(&id.to_string()).unwrap()
-            };
-            Ok(Json(response))
-        },
-        Err(err) => Err(err)
-    }
+    Ok(Json(response))
+    
 }
 
 pub fn api() -> Vec<rocket::Route> {

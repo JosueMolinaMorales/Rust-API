@@ -13,10 +13,8 @@ pub(crate) async fn create_record(db: &State<MongoClient>, mut new_record: Passw
     new_record.password = encrypt_password(&new_record.password);
     new_record.user_id = Some(id);
     // Store record in database
-    match datastore::insert_record(db, new_record).await {
-        Ok(id) => { Ok(id) },
-        Err(err) => { Err(err) }
-    }
+    let record_id = datastore::insert_record(db, new_record).await?;
+    Ok(record_id)
 }
 
 pub async fn update_record(db: &State<MongoClient>, mut updated_record: UpdatePasswordRecord, record_id: ObjectId, user_id: ObjectId) -> Result<(), ApiErrors> {

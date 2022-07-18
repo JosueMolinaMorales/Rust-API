@@ -9,14 +9,16 @@ pub async fn insert_record(db: &State<MongoClient>, record: PasswordRecord) -> R
     .database("personal-api")
     .collection::<PasswordRecord>("records")
     .insert_one(record, None).await {
-        Ok(res) => { Ok(res.inserted_id.as_object_id().unwrap()) },
-        Err(error) => {
-            Err(ApiErrors::ServerError(error.to_string()))
-        }
+        Ok(res) => Ok(res.inserted_id.as_object_id().unwrap()),
+        Err(error) => Err(ApiErrors::ServerError(error.to_string()))
     }
 }
 
-pub async fn get_record(db: &State<MongoClient>, record_id: ObjectId, user_id: ObjectId) -> Result<Option<PasswordRecord>, ApiErrors> {
+pub async fn get_record(
+    db: &State<MongoClient>, 
+    record_id: ObjectId, 
+    user_id: ObjectId
+) -> Result<Option<PasswordRecord>, ApiErrors> {
     match db.get_client()
     .database("personal-api")
     .collection::<PasswordRecord>("records")

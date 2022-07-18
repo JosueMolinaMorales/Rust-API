@@ -7,12 +7,8 @@ pub async fn email_exists(db: &State<MongoClient>, email: &String) -> Result<boo
     .database("personal-api")
     .collection::<User>("users")
     .count_documents(doc!{ "email": email }, None).await {
-        Ok(val) => { 
-            Ok(val != 0)
-        },
-        Err(err) => {
-            Err(ApiErrors::ServerError(err.to_string()))
-        }
+        Ok(val) => Ok(val != 0),
+        Err(err) => Err(ApiErrors::ServerError(err.to_string()))
     }
 }
 
@@ -21,12 +17,8 @@ pub async fn username_exists(db: &State<MongoClient>, username: &String) -> Resu
     .database("personal-api")
     .collection::<User>("users")
     .count_documents(doc!{ "username": username }, None).await {
-        Ok(val) => {
-            Ok(val != 0)
-        },
-        Err(err) => {
-            Err(ApiErrors::ServerError(err.to_string()))
-        }
+        Ok(val) => Ok(val != 0),
+        Err(err) => Err(ApiErrors::ServerError(err.to_string()))
     }
 }
 
@@ -35,12 +27,8 @@ pub async fn insert_user(db: &State<MongoClient>, user: &User) -> Result<ObjectI
     .database("personal-api")
     .collection::<User>("users")
     .insert_one(user, None).await {
-        Ok(res) => {
-            Ok(res.inserted_id.as_object_id().unwrap())
-        },
-        Err(_) => {
-            Err(ApiErrors::ServerError(String::from("There was an issue storing the user")))
-        }
+        Ok(res) => Ok(res.inserted_id.as_object_id().unwrap()),
+        Err(_) => Err(ApiErrors::ServerError(String::from("There was an issue storing the user")))
     }
 }
 
@@ -49,10 +37,7 @@ pub async fn get_user(db: &State<MongoClient>, username: &String) -> Result<Opti
     .database("personal-api")
     .collection::<User>("users")
     .find_one(doc!{ "username": username }, None).await {
-        Ok(user) => {
-            println!("{:?}", user);
-            Ok(user)
-        },
+        Ok(user) => Ok(user),
         Err(err) => Err(ApiErrors::BadRequest(err.to_string()))
     }
 }
