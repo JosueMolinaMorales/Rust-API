@@ -14,7 +14,7 @@ pub struct AuthResponse {
 }
 
 #[post("/login", data = "<login_form>")]
-pub async fn login(db: &State<MongoClient>, login_form: Json<LoginForm>) -> Result<Json<AuthResponse>, Json<ApiErrors>> {
+pub async fn login(db: &State<MongoClient>, login_form: Json<LoginForm>) -> Result<Json<AuthResponse>, ApiErrors> {
     let mut user = auth_component::login(db, login_form.0).await?;
     let id = user.id.clone().unwrap();
     user.id = None;
@@ -26,7 +26,10 @@ pub async fn login(db: &State<MongoClient>, login_form: Json<LoginForm>) -> Resu
 }
 
 #[post("/register", data = "<registration_form>")]
-pub async fn register(db: &State<MongoClient>, mut registration_form: Json<RegistrationForm>) -> Result<Json<AuthResponse>, ApiErrors> {
+pub async fn register(
+    db: &State<MongoClient>, 
+    mut registration_form: Json<RegistrationForm>
+) -> Result<Json<AuthResponse>, ApiErrors> {
     let mut user = auth_component::register(db, &mut registration_form.0).await?;
     let id = user.id.clone().unwrap();
     user.id = None;

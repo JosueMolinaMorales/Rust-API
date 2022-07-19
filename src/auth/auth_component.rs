@@ -25,8 +25,8 @@ pub async fn register(db: &State<MongoClient>, register_form: &mut RegistrationF
     let user: User = User {
         id: None,
         name: String::from(&register_form.name),
-        email: String::from(&register_form.email),
-        username: String::from(&register_form.username),
+        email: String::from(&register_form.email).to_lowercase(),
+        username: String::from(&register_form.username).to_lowercase(),
         password: String::from(&register_form.password)
     };
 
@@ -46,7 +46,7 @@ pub async fn login(db: &State<MongoClient>, info: LoginForm) -> Result<AuthUser,
     let user: User;
     let err_msg = String::from("Username or password is incorrect");
 
-    let res = auth_datastore::get_user(db, &info.username).await?;
+    let res = auth_datastore::get_user(db, &info.username.to_lowercase()).await?;
     if res.is_none() {
         return Err(ApiErrors::BadRequest(err_msg))
     }

@@ -1,25 +1,67 @@
+use std::{collections::BTreeMap, io::Cursor};
+
 use mongodb::bson::oid::ObjectId;
-use rocket::response::Responder;
+use rocket::{response::{Responder, self}, Request, Response, http::{Status, ContentType}, serde::json::serde_json};
 use validator::Validate;
 use serde::{Deserialize, Serialize, Serializer};
 
-#[derive(Debug, Serialize, Responder)]
-#[serde(crate="rocket::serde")]
+#[derive(Debug)]
 pub enum ApiErrors {
-    #[response(status = 500)]
     ServerError(String),
-
-    #[response(status = 400)]
     BadRequest(String),
-
-    #[response(status = 403)]
     Forbidden(String),
-
-    #[response(status = 401)]
     Unauthorized(String),
-
-    #[response(status = 404)]
     NotFound(String)
+}
+impl<'r> Responder<'r, 'r> for ApiErrors {
+    fn respond_to(self, _: &'r Request<'_>) -> response::Result<'r> {
+        let string = serde_json::to_string(&self)
+            .map_err(|e| {
+                error_!("JSON failed to serialize: {:?}", e);
+                Status::InternalServerError
+            })?;
+        
+        let mut res = Response::build();
+        match self {
+            ApiErrors::ServerError(_) => {
+                res.status(Status::InternalServerError).sized_body(string.len(), Cursor::new(string));
+            },
+            ApiErrors::BadRequest(_) => {
+                res.status(Status::BadRequest).sized_body(string.len(), Cursor::new(string));
+            },
+            ApiErrors::Forbidden(_) => {
+                res.status(Status::Forbidden).sized_body(string.len(), Cursor::new(string));
+            },
+            ApiErrors::Unauthorized(_) => {
+                res.status(Status::Unauthorized).sized_body(string.len(), Cursor::new(string));
+            },
+            ApiErrors::NotFound(_) => {
+                res.status(Status::NotFound).sized_body(string.len(), Cursor::new(string));
+            },
+        };
+        res.header(ContentType::JSON);
+        res.ok()
+    }
+}
+
+impl Serialize for ApiErrors {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer {
+        let mut error_obj:BTreeMap<&str, BTreeMap<&str, &String>> = BTreeMap::new();
+        let mut error_msg: BTreeMap<&str, &String> = BTreeMap::new();
+        match *&self {
+            ApiErrors::ServerError(msg) => error_msg.insert("message", msg),
+            ApiErrors::BadRequest(msg) => error_msg.insert("message", msg),
+            ApiErrors::Forbidden(msg) => error_msg.insert("message", msg),
+            ApiErrors::Unauthorized(msg) => error_msg.insert("message", msg),
+            ApiErrors::NotFound(msg) => error_msg.insert("message", msg)
+
+        };
+        error_obj.insert("error", error_msg);
+
+        serializer.collect_map(error_obj.iter())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
@@ -89,6 +131,20 @@ pub struct PasswordRecord {
 
     #[serde(skip_serializing_if="Option::is_none")]
     pub user_id: Option<ObjectId> /* The Object Id of the user who owns this record */
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResponsePasswordRecord {
+    pub id: String,
+    pub service: String,
+    pub password: String,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub email: Option<String>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub username: Option<String>,
+    pub user_id: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

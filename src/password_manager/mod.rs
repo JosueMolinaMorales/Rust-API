@@ -3,28 +3,41 @@ pub mod datastore;
 
 use bson::oid::ObjectId;
 use mongodb::bson::{doc, Document};
-use rocket::State;
-use rocket::http::Status;
+use rocket::{ State, http::Status, serde::json::Json };
+use crate::{ 
+    drivers::mongodb::MongoClient, 
+    shared::{ jwt_service::Token, types::{PasswordRecord, ApiErrors, UpdatePasswordRecord, ResponsePasswordRecord} } 
+};
 
-use crate::drivers::mongodb::MongoClient;
-use crate::shared::jwt_service::Token;
-use crate::shared::types::{PasswordRecord, ApiErrors, UpdatePasswordRecord};
-use rocket::serde::json::Json;
+/*
+    Routes in this file:
+    get /password/:id -> Get a password record
+    POST /password -> Create a password record
+    PATCH password/:id -> Update a password record
+    DELETE /password/:id -> Delete a password record
+*/
 
 #[get("/<id>")]
 pub async fn get_record(
     db: &State<MongoClient>, 
     id: String, 
     user_id: Token
-) -> Result<Json<PasswordRecord>, ApiErrors> {
+) -> Result<Json<ResponsePasswordRecord>, ApiErrors> {
     let record_id = match ObjectId::parse_str(id) {
         Ok(res) => res,
         Err(_) =>  return Err(ApiErrors::BadRequest("ID is not formatted correctly".to_string()))
     };
     
     let res = component::get_record(db, record_id, user_id.id).await?;
-            
-    Ok(Json(res))
+    
+    Ok(Json(ResponsePasswordRecord { 
+        id: res.id.unwrap().to_string(), 
+        service: res.service, 
+        password: res.password, 
+        email: res.email, 
+        username: res.username,
+        user_id: res.user_id.unwrap().to_string()
+    }))
 }
 
 
