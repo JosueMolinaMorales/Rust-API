@@ -1,17 +1,16 @@
-use crate::{shared::types::{RegistrationForm, User, ApiErrors, LoginForm, AuthUser}, drivers::mongodb::MongoClient};
+use crate::{shared::types::{RegistrationForm, User, ApiErrors, LoginForm, AuthUser}, drivers::mongodb::TMongoClient};
 use pwhash::bcrypt;
 use rocket::State;
 
-use super::auth_datastore;
 
-pub async fn register(db: &State<MongoClient>, register_form: &mut RegistrationForm) -> Result<AuthUser, ApiErrors> {
+pub async fn register(db: &State<Box<dyn TMongoClient>>, register_form: &mut RegistrationForm) -> Result<AuthUser, ApiErrors> {
     /*
         Check if email exists -> check if email exists -> hash password -> insert user
     */
-    if auth_datastore::email_exists(db, &register_form.email).await? {
+    if db.email_exists(&register_form.email).await? {
         return Err(ApiErrors::BadRequest(String::from("Email already exists")));
     }
-    if auth_datastore::username_exists(db, &register_form.username).await? {
+    if db.username_exists(&register_form.username).await? {
         return Err(ApiErrors::BadRequest(String::from("Username already exists")));
     }
 
@@ -30,7 +29,7 @@ pub async fn register(db: &State<MongoClient>, register_form: &mut RegistrationF
         password: String::from(&register_form.password)
     };
 
-    let id = auth_datastore::insert_user(db, &user).await?;
+    let id = db.insert_user(&user).await?;
 
     let auth_user = AuthUser {
         id: Some(id),
@@ -42,11 +41,11 @@ pub async fn register(db: &State<MongoClient>, register_form: &mut RegistrationF
     Ok(auth_user)
 }
 
-pub async fn login(db: &State<MongoClient>, info: LoginForm) -> Result<AuthUser, ApiErrors> {
+pub async fn login(db: &State<Box<dyn TMongoClient>>, info: LoginForm) -> Result<AuthUser, ApiErrors> {
     let user: User;
     let err_msg = String::from("Username or password is incorrect");
 
-    let res = auth_datastore::get_user(db, &info.username.to_lowercase()).await?;
+    let res = db.get_user(&info.username.to_lowercase()).await?;
     if res.is_none() {
         return Err(ApiErrors::BadRequest(err_msg))
     }

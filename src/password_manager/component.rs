@@ -2,24 +2,23 @@ use magic_crypt::{new_magic_crypt, MagicCryptTrait};
 use mongodb::bson::oid::ObjectId;
 use rocket::State;
 
-use crate::{shared::types::{PasswordRecord, ApiErrors, UpdatePasswordRecord}, drivers::mongodb::MongoClient};
+use crate::{shared::types::{PasswordRecord, ApiErrors, UpdatePasswordRecord}, drivers::mongodb::TMongoClient};
 
-use super::datastore;
 
 /**
  * Create a password record
  */
-pub(crate) async fn create_record(db: &State<MongoClient>, mut new_record: PasswordRecord, id: ObjectId) -> Result<ObjectId, ApiErrors> {
+pub(crate) async fn create_record(db: &State<Box<dyn TMongoClient>>, mut new_record: PasswordRecord, id: ObjectId) -> Result<ObjectId, ApiErrors> {
     new_record.password = encrypt_password(&new_record.password);
     new_record.user_id = Some(id);
     // Store record in database
-    let record_id = datastore::insert_record(db, new_record).await?;
+    let record_id = db.insert_record(new_record).await?;
     Ok(record_id)
 }
 
-pub async fn update_record(db: &State<MongoClient>, mut updated_record: UpdatePasswordRecord, record_id: ObjectId, user_id: ObjectId) -> Result<(), ApiErrors> {
+pub async fn update_record(db: &State<Box<dyn TMongoClient>>, mut updated_record: UpdatePasswordRecord, record_id: ObjectId, user_id: ObjectId) -> Result<(), ApiErrors> {
     // Get the record
-    let record = datastore::get_record(db, record_id, user_id).await?;
+    let record = db.get_record(record_id, user_id).await?;
     // Check if the record exists
     if record.is_none() {
         return Err(ApiErrors::NotFound("Record not found".to_string()));
@@ -28,21 +27,20 @@ pub async fn update_record(db: &State<MongoClient>, mut updated_record: UpdatePa
     if let Some(password) = updated_record.password {
         updated_record.password = Some(encrypt_password(&password));
     }
-    datastore::update_record(db, updated_record, record_id, user_id).await?;
+    db.update_record(updated_record, record_id, user_id).await?;
 
     Ok(())
 
 }
 
-pub async fn delete_record(db: &State<MongoClient>, record_id: ObjectId, user_id: ObjectId) -> Result<(), ApiErrors> {
-    datastore::delete_record(db, record_id, user_id).await?;
+pub async fn delete_record(db: &State<Box<dyn TMongoClient>>, record_id: ObjectId, user_id: ObjectId) -> Result<(), ApiErrors> {
+    db.delete_record(record_id, user_id).await?;
     Ok(())
 }
 
-pub async fn get_record( db: &State<MongoClient>, record_id: ObjectId, user_id: ObjectId) -> Result<PasswordRecord, ApiErrors>{
+pub async fn get_record( db: &State<Box<dyn TMongoClient>>, record_id: ObjectId, user_id: ObjectId) -> Result<PasswordRecord, ApiErrors>{
     // Get the record
-    let record = datastore::get_record(
-        db, 
+    let record = db.get_record(
         record_id,
         user_id
     ).await?;

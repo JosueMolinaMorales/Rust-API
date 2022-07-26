@@ -1,11 +1,10 @@
 pub mod component;
-pub mod datastore;
 
 use bson::oid::ObjectId;
 use mongodb::bson::{doc, Document};
 use rocket::{ State, http::Status, serde::json::Json };
 use crate::{ 
-    drivers::mongodb::MongoClient, 
+    drivers::mongodb::TMongoClient, 
     shared::{ jwt_service::Token, types::{PasswordRecord, ApiErrors, UpdatePasswordRecord, ResponsePasswordRecord} } 
 };
 
@@ -19,7 +18,7 @@ use crate::{
 
 #[get("/<id>")]
 pub async fn get_record(
-    db: &State<MongoClient>, 
+    db: &State<Box<dyn TMongoClient>>, 
     id: String, 
     user_id: Token
 ) -> Result<Json<ResponsePasswordRecord>, ApiErrors> {
@@ -43,7 +42,7 @@ pub async fn get_record(
 
 #[post("/", data="<record>")]
 pub async fn create_record(
-    db: &State<MongoClient>, 
+    db: &State<Box<dyn TMongoClient>>, 
     record: Json<PasswordRecord>, 
     id: Token
 ) -> Result<Json<Document>, ApiErrors> {
@@ -55,7 +54,7 @@ pub async fn create_record(
 
 #[patch("/<id>", data="<updated_record>")]
 pub async fn update_record(
-    db: &State<MongoClient>, 
+    db: &State<Box<dyn TMongoClient>>, 
     updated_record: Json<UpdatePasswordRecord>, 
     id: String, 
     user_id: Token
@@ -73,7 +72,7 @@ pub async fn update_record(
 }
 
 #[delete("/<id>")]
-pub async fn delete_record(db: &State<MongoClient>, id: String, user_id: Token) -> Result<Status, ApiErrors> {
+pub async fn delete_record(db: &State<Box<dyn TMongoClient>>, id: String, user_id: Token) -> Result<Status, ApiErrors> {
     let record_id = match ObjectId::parse_str(id) {
         Ok(res) => res,
         Err(_) =>  return Err(ApiErrors::BadRequest("ID is not formatted correctly".to_string()))

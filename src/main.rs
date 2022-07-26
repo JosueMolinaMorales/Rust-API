@@ -1,6 +1,7 @@
 #[macro_use] extern crate rocket;
 extern crate dotenv;
 use dotenv::dotenv;
+use drivers::mongodb::TMongoClient;
 pub mod shared;
 pub mod auth;
 pub mod drivers;
@@ -21,7 +22,7 @@ async fn rocket() -> _ {
     db.connect().await;
 
     rocket::build()
-    .manage(db)
+    .manage(Box::new(db) as Box<dyn TMongoClient>)
     .mount("/", routes![index])
     .mount("/auth", auth::api())
     .mount("/password/", password_manager::api())
