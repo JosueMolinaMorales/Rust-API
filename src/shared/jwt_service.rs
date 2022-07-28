@@ -11,11 +11,10 @@ pub fn get_token_from_header(auth_header: String) -> Option<String> {
     let mut auth_split = auth_header.split(" ");
     let bearer = auth_split.next();
     let token = auth_split.next();
-    if
-        bearer == Some("Bearer") &&
-        token != None
-    {
-        return Some(token.unwrap().to_string())
+    if bearer == Some("Bearer") {
+        if let Some(a_token) = token {
+            return Some(a_token.to_string());
+        }
     }
     None
 }
@@ -50,7 +49,11 @@ pub fn verify_token(token: String) -> Result<ObjectId, ApiErrors> {
         Err(_) => { return Err(ApiErrors::Unauthorized("Token is invalid".to_string()))},
     };
 
-    Ok(ObjectId::parse_str(claims["id"].as_str()).unwrap())
+    if let Ok(id) = ObjectId::parse_str(claims["id"].as_str()) {
+        Ok(id)
+    } else {
+        Err(ApiErrors::ServerError("Id is not in token".to_string()))
+    }
 }
 
 #[derive(Debug)]
@@ -64,25 +67,24 @@ impl<'r> FromRequest<'r> for Token {
 
     async fn from_request(request: &'r Request<'_>) -> request::Outcome<Self, Self::Error>{
         // Get Auth Header if exists
-        let auth_header = request.headers().get_one("Authorization");
-        if auth_header.is_none() {
-            return Outcome::Failure((Status::Unauthorized, ApiErrors::Unauthorized("Authorization Header Required".to_string())));
-        }
+        let auth_header = match request.headers().get_one("Authorization") {
+            Some(header) => header.to_string(),
+            None => return Outcome::Failure((Status::Unauthorized, ApiErrors::Unauthorized("Authorization Header Required".to_string())))
+        };
 
         // Get the token from header
-        let token = get_token_from_header(auth_header.unwrap().to_string());
-        if token.is_none() {
-            return Outcome::Failure((Status::Unauthorized, ApiErrors::Unauthorized("Authorization Header Malformed".to_string())));
-        }
+        let token = match get_token_from_header(auth_header) {
+            Some(a_token) => a_token,
+            None => return Outcome::Failure((Status::Unauthorized, ApiErrors::Unauthorized("Authorization Header Malformed".to_string())))
+        };
 
         // Verify the JWT
-        let id = verify_token(token.unwrap());
-        if id.is_err() {
-            return Outcome::Failure((Status::Unauthorized, ApiErrors::Unauthorized("Failed to verify token".to_string())));
-        }
+        let id = match  verify_token(token) {
+            Ok(id) => id,
+            Err(_) => return Outcome::Failure((Status::Unauthorized, ApiErrors::Unauthorized("Failed to verify token".to_string())))
+        };
 
         // Return the token
-        let id = id.unwrap();
         Outcome::Success(Token {
             id
         })

@@ -1,7 +1,6 @@
-use crate::auth::AuthResponse;
 use crate::drivers::mongodb::{MockTMongoClient, TMongoClient};
 use crate::{auth, password_manager};
-use crate::shared::types::{RegistrationForm, ApiErrors, PasswordRecord, User};
+use crate::shared::types::{RegistrationForm, ApiErrors, PasswordRecord, User, AuthResponse};
 use bson::oid::ObjectId;
 use dotenv::dotenv;
 use self::mock_data::MockData;

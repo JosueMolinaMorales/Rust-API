@@ -50,8 +50,13 @@ impl Serialize for ApiErrors {
         S: Serializer {
         let mut error_obj:BTreeMap<&str, BTreeMap<&str, &String>> = BTreeMap::new();
         let mut error_msg: BTreeMap<&str, &String> = BTreeMap::new();
+        let server_error_msg = "Internal Service Error".to_string();
         match *&self {
-            ApiErrors::ServerError(msg) => error_msg.insert("message", msg),
+            ApiErrors::ServerError(msg) => {
+                // Log Error Message
+                println!("{}", msg);
+                error_msg.insert("message", &server_error_msg)
+            },
             ApiErrors::BadRequest(msg) => error_msg.insert("message", msg),
             ApiErrors::Forbidden(msg) => error_msg.insert("message", msg),
             ApiErrors::Unauthorized(msg) => error_msg.insert("message", msg),
@@ -90,6 +95,13 @@ pub struct User {
     pub password: String
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(crate="rocket::serde")]
+pub struct AuthResponse {
+    pub user: AuthUser,
+    pub token: String
+}
+
 pub struct PartialUser {
     pub firstname: Option<String>,
     pub lastname: Option<String>,
@@ -101,8 +113,6 @@ pub struct PartialUser {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate="rocket::serde")]
 pub struct AuthUser {
-    #[serde(rename = "_id", skip_serializing_if="Option::is_none")]
-    pub id: Option<ObjectId>,
     pub name: String,
     pub email: String,
     pub username: String

@@ -92,7 +92,13 @@ impl TMongoClient for MongoClient {
         .database("personal-api")
         .collection::<User>("users")
         .insert_one(user, None).await {
-            Ok(res) => Ok(res.inserted_id.as_object_id().unwrap()),
+            Ok(res) => {
+                if let Some(obj_id) = res.inserted_id.as_object_id() {
+                    Ok(obj_id)
+                } else {
+                    return Err(ApiErrors::ServerError("Error converting Object id".to_string()))
+                }
+            },
             Err(_) => Err(ApiErrors::ServerError(String::from("There was an issue storing the user")))
         }
     }
@@ -114,7 +120,13 @@ impl TMongoClient for MongoClient {
         .database("personal-api")
         .collection::<PasswordRecord>("records")
         .insert_one(record, None).await {
-            Ok(res) => Ok(res.inserted_id.as_object_id().unwrap()),
+            Ok(res) => {
+                if let Some(obj_id) = res.inserted_id.as_object_id() {
+                    Ok(obj_id)
+                } else {
+                    return Err(ApiErrors::ServerError("Error converting Object id".to_string()))
+                }
+            },
             Err(error) => Err(ApiErrors::ServerError(error.to_string()))
         }
     }
