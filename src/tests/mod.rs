@@ -4,14 +4,16 @@ use crate::{auth, password_manager};
 use crate::shared::types::{RegistrationForm, ApiErrors, PasswordRecord, User};
 use bson::oid::ObjectId;
 use dotenv::dotenv;
-use super::rocket;
+use self::mock_data::MockData;
+
 use rocket::{Rocket, Build};
 use rocket::http::Status;
 use rocket::local::asynchronous::Client;
 pub mod mock_data;
 
-async fn mock_mongo_client() -> MockTMongoClient {
+async fn mock_mongo_client(mock_data: &MockData) -> MockTMongoClient {
     let mut mock = MockTMongoClient::new();
+    
     mock.expect_email_exists().returning(|email| {
         Ok(*email == "not_an_email@mail.gmail".to_string())
     });
@@ -46,7 +48,9 @@ async fn mock_mongo_client() -> MockTMongoClient {
     mock.expect_insert_user().returning(|_| {
         Ok(ObjectId::new())
     });
-    mock.expect_update_record();
+    mock.expect_update_record().returning(|_, record_id, user_id| {
+        Ok(())
+    });
     mock.expect_username_exists().returning(|username| {
         Ok(*username == "username_exist".to_string())
     });
@@ -54,10 +58,10 @@ async fn mock_mongo_client() -> MockTMongoClient {
     mock
 }
 
-async fn build_test_rocket() -> Rocket<Build> {
+async fn build_test_rocket(mock_data: &MockData) -> Rocket<Build> {
     dotenv().ok();
 
-    let db = mock_mongo_client().await;
+    let db = mock_mongo_client(mock_data).await;
 
     rocket::build()
     .manage(Box::new(db) as Box<dyn TMongoClient>)
@@ -65,6 +69,7 @@ async fn build_test_rocket() -> Rocket<Build> {
     .mount("/password/", password_manager::api())
 }
 
+/* Auth Tests */
 #[rocket::async_test]
 async fn register_success() {
     let req_body = RegistrationForm {
@@ -73,8 +78,8 @@ async fn register_success() {
         name: "Josue Morales".to_string(),
         username: "Testing123!".to_string()
     };
-    
-    let client = Client::tracked(build_test_rocket().await).await.unwrap();
+    let mock_data = MockData::new();
+    let client = Client::tracked(build_test_rocket(&mock_data).await).await.unwrap();
     let req = client.post("/auth/register").json(&req_body);
 
     let res = req.dispatch().await;
@@ -86,3 +91,36 @@ async fn register_success() {
     assert_eq!(s1.name, req_body.name);
     assert_eq!(s1.username, req_body.username);
 }
+
+async fn register_fail_email_exist() {}
+
+async fn register_fail_username_exist() {}
+
+async fn login_success() {}
+
+async fn login_fail_wrong_password() {}
+
+async fn login_fail_wrong_username() {}
+
+/* Password Manager Tests */
+
+async fn create_record_success () {}
+
+async fn update_record_success() {}
+
+async fn update_record_fail_record_dne() {}
+
+async fn update_record_fail_user_dne() {}
+
+async fn delete_record_success() {}
+
+async fn delete_record_fail_record_dne() {}
+
+async fn delete_record_fail_user_dne() {}
+
+async fn get_record_success() {}
+
+async fn get_record_fail_record_dne() {}
+
+async fn get_record_fail_user_dne() {}
+
