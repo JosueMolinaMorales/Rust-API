@@ -46,16 +46,27 @@ pub async fn get_record( db: &State<Box<dyn TMongoClient>>, record_id: ObjectId,
     ).await?;
 
     // Check if the record exists and return
-    match record {
-        None => Err(ApiErrors::NotFound("Record was not found".to_string())),
-        Some(rec) => {
-            Ok(rec)
-        }
-    }
+    let mut record = match record {
+        None => return Err(ApiErrors::NotFound("Record was not found".to_string())),
+        Some(rec) => rec
+    };
+
+    // Decrypt password
+    record.password = decrypt_password(&record.password)?;
+
+    Ok(record)
 }
 
 fn encrypt_password(password: &String) -> String{
     // Encrypt Password with Symmetric Key
     let mc = new_magic_crypt!("magickey", 256); // TODO: Make Key an env
     mc.encrypt_to_base64(password)
+}
+
+fn decrypt_password(encrypted: &String) -> Result<String, ApiErrors> {
+    let mc = new_magic_crypt!("magickey", 256);
+    match mc.decrypt_base64_to_string(encrypted) {
+        Ok(res) => Ok(res),
+        Err(_) => Err(ApiErrors::ServerError("There was an issue decrypting".to_string()))
+    }
 }

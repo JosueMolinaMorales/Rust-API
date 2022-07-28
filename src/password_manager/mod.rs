@@ -28,14 +28,22 @@ pub async fn get_record(
     };
     
     let res = component::get_record(db, record_id, user_id.id).await?;
-    
+    let id = match res.id { 
+        Some(id) => id.to_string(), 
+        None => return Err(ApiErrors::ServerError("Internal Service Error".to_string()))
+    };
+    let user_id = match res.user_id {
+        Some(user_id) => user_id.to_string(),
+        None => return Err(ApiErrors::ServerError("Internal Service Error".to_string()))
+    };
+
     Ok(Json(ResponsePasswordRecord { 
-        id: res.id.unwrap().to_string(), 
+        id, 
         service: res.service, 
         password: res.password, 
         email: res.email, 
         username: res.username,
-        user_id: res.user_id.unwrap().to_string()
+        user_id
     }))
 }
 
