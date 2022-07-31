@@ -1,11 +1,11 @@
 pub mod component;
 
-use bson::oid::ObjectId;
-use mongodb::bson::{doc, Document};
+use bson::{oid::ObjectId, Document};
+use mongodb::bson::doc;
 use rocket::{ State, http::Status, serde::json::Json };
 use crate::{ 
     drivers::mongodb::TMongoClient, 
-    shared::{ jwt_service::Token, types::{PasswordRecord, ApiErrors, UpdatePasswordRecord, ResponsePasswordRecord} } 
+    shared::{ jwt_service::Token, types::{PasswordRecord, ApiErrors, UpdatePasswordRecord, ResponsePasswordRecord, CreatedResponse} } 
 };
 
 /*
@@ -15,6 +15,24 @@ use crate::{
     PATCH password/:id -> Update a password record
     DELETE /password/:id -> Delete a password record
 */
+
+#[get("/records/<user_id>")]
+pub async fn get_all_user_records(
+    db: &State<Box<dyn TMongoClient>>,
+    user_id: String,
+    token: Token
+) -> Result<Json<Vec<PasswordRecord>>, ApiErrors> {
+    let user_id = match ObjectId::parse_str(user_id) {
+        Ok(res) => res,
+        Err(_) => return Err(ApiErrors::BadRequest("User Id is not formatted correctly".to_string()))
+    };
+    if token.id != user_id {
+        return Err(ApiErrors::Unauthorized("Not Authorized".to_string()));
+    }
+    let records = component::get_all_user_records(db, user_id).await?;
+    let document = Document::new();
+    Ok(Json(records))
+}
 
 #[get("/<id>")]
 pub async fn get_record(
@@ -47,17 +65,16 @@ pub async fn get_record(
     }))
 }
 
-
 #[post("/", data="<record>")]
 pub async fn create_record(
     db: &State<Box<dyn TMongoClient>>, 
     record: Json<PasswordRecord>, 
     id: Token
-) -> Result<Json<Document>, ApiErrors> {
+) -> Result<CreatedResponse, ApiErrors> {
     let res = component::create_record(db, record.0, id.id).await?;
-    Ok(Json(doc! {
-        "id": res.to_string()
-    }))
+    Ok(CreatedResponse {
+        id: Json(doc! { "id": res.to_string() })
+    })
 }
 
 #[patch("/<id>", data="<updated_record>")]
@@ -95,6 +112,7 @@ pub fn api() -> Vec<rocket::Route> {
         get_record,
         create_record,
         update_record,
-        delete_record
+        delete_record,
+        get_all_user_records
     ]
 }

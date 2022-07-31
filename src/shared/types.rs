@@ -1,7 +1,8 @@
 use std::{collections::BTreeMap, io::Cursor};
 
+use bson::Document;
 use mongodb::bson::oid::ObjectId;
-use rocket::{response::{Responder, self}, Request, Response, http::{Status, ContentType}, serde::json::serde_json};
+use rocket::{response::{Responder, self}, Request, Response, http::{Status, ContentType}, serde::json::{serde_json, Json}};
 use validator::Validate;
 use serde::{Deserialize, Serialize, Serializer};
 
@@ -118,7 +119,7 @@ pub struct AuthUser {
     pub username: String
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(crate="rocket::serde")]
 pub struct LoginForm {
     pub username: String,
@@ -177,4 +178,30 @@ where
       Some(ref object_id) => serializer.serialize_some(object_id.to_string().as_str()),
       None => serializer.serialize_none()
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(crate="rocket::serde")]
+pub struct SecretRecord {
+    #[serde(rename="_id", skip_serializing_if="Option::is_none")]
+    pub id: Option<ObjectId>,
+
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub user_id: Option<ObjectId>,
+    
+    pub key: String,
+    pub secret: String
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(crate="rocket::serde")]
+pub struct UpdateSecretRecord {
+    pub key: Option<String>,
+    pub secret: Option<String>
+}
+
+#[derive(Responder)]
+#[response(status = 201, content_type = "json")]
+pub struct CreatedResponse {
+    pub id: Json<Document>
 }

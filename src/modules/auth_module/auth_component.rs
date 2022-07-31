@@ -45,14 +45,13 @@ pub async fn register(
 }
 
 pub async fn login(db: &State<Box<dyn TMongoClient>>, info: LoginForm) -> Result<AuthResponse, ApiErrors> {
-    let user: User;
     let err_msg = String::from("Username or password is incorrect");
 
-    if let Some(a_user) = db.get_user(&info.username.to_lowercase()).await? {
-        user = a_user;
-    } else {
-        return Err(ApiErrors::BadRequest(err_msg))
-    }
+    // Check to see if user exists
+    let user = match db.get_user(&info.username.to_lowercase()).await {
+        Ok(user) => user,
+        Err(_) => return Err(ApiErrors::BadRequest(err_msg))
+    };
 
     // Match Password
     if !bcrypt::verify(&info.password, &user.password) {

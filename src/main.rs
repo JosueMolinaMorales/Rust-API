@@ -2,10 +2,11 @@
 extern crate dotenv;
 use dotenv::dotenv;
 use drivers::mongodb::TMongoClient;
+use modules::{ auth_module, password_module, secrets_module };
 pub mod shared;
-pub mod auth;
 pub mod drivers;
-pub mod password_manager;
+pub mod modules;
+
 
 #[cfg(test)] mod tests;
 
@@ -24,6 +25,7 @@ async fn rocket() -> _ {
     rocket::build()
     .manage(Box::new(db) as Box<dyn TMongoClient>)
     .mount("/", routes![index])
-    .mount("/auth", auth::api())
-    .mount("/password/", password_manager::api())
+    .mount("/auth/", auth_module::api())
+    .mount("/password/", password_module::api())
+    .mount("/secret/", secrets_module::api())
 }
