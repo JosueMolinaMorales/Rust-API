@@ -25,6 +25,23 @@ pub struct SecretRecordResponse {
     pub secret: String
 }
 
+#[get("/records/<user_id>")]
+pub async fn get_all_secret_record(
+    db: &State<Box<dyn TMongoClient>>,
+    token: Token,
+    user_id: String
+) -> Result<Json<Vec<SecretRecordResponse>>, ApiErrors> {
+    let user_id = match ObjectId::parse_str(user_id) {
+        Ok(res) => res,
+        Err(_) => return Err(ApiErrors::BadRequest("User Id is not formatted correctly".to_string()))
+    };
+    if token.id != user_id {
+        return Err(ApiErrors::Unauthorized("Not Authorized".to_string()));
+    }
+    let records = component::get_all_secret_record(db, user_id).await?;
+    Ok(Json(records))
+}
+
 #[get("/<id>")]
 pub async fn get_secret(
     db: &State<Box<dyn TMongoClient>>,
@@ -96,6 +113,7 @@ pub fn api() -> Vec<rocket::Route> {
         get_secret,
         delete_secret,
         create_secret,
-        update_secret
+        update_secret,
+        get_all_secret_record
     ]
 }

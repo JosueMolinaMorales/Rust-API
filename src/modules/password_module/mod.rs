@@ -1,6 +1,6 @@
 pub mod component;
 
-use bson::{oid::ObjectId, Document};
+use bson::oid::ObjectId;
 use mongodb::bson::doc;
 use rocket::{ State, http::Status, serde::json::Json };
 use crate::{ 
@@ -21,7 +21,7 @@ pub async fn get_all_user_records(
     db: &State<Box<dyn TMongoClient>>,
     user_id: String,
     token: Token
-) -> Result<Json<Vec<PasswordRecord>>, ApiErrors> {
+) -> Result<Json<Vec<ResponsePasswordRecord>>, ApiErrors> {
     let user_id = match ObjectId::parse_str(user_id) {
         Ok(res) => res,
         Err(_) => return Err(ApiErrors::BadRequest("User Id is not formatted correctly".to_string()))
@@ -30,7 +30,6 @@ pub async fn get_all_user_records(
         return Err(ApiErrors::Unauthorized("Not Authorized".to_string()));
     }
     let records = component::get_all_user_records(db, user_id).await?;
-    let document = Document::new();
     Ok(Json(records))
 }
 

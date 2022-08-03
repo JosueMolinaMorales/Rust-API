@@ -55,16 +55,23 @@ pub async fn get_all_user_records(db: &State<Box<dyn TMongoClient>>, user_id: Ob
         // Decrypt Password
         record.password = decrypt_password(&record.password)?;
 
-        // Make oid to string
-        record.id = 
+        let id = match record.id {
+            Some(id) => id.to_string(),
+            None => return Err(ApiErrors::ServerError("No ObjectId".to_string()))
+        };
+        let user_id = match record.user_id {
+            Some(id) => id.to_string(),
+            None => return Err(ApiErrors::ServerError("No ObjectId".to_string()))
+        };
+
         // add to vector
         records.push(ResponsePasswordRecord { 
-            id: (), 
-            service: (), 
-            password: (), 
-            email: (), 
-            username: (), 
-            user_id: () 
+            id, 
+            service: record.service, 
+            password: record.password, 
+            email: record.email, 
+            username: record.username, 
+            user_id 
         });
     }
 
