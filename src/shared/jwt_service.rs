@@ -8,6 +8,7 @@ use sha2::Sha256;
 use super::types::ApiErrors;
 
 pub fn get_token_from_header(auth_header: String) -> Option<String> {
+    println!("{}", auth_header);
     let mut auth_split = auth_header.split(" ");
     let bearer = auth_split.next();
     let token = auth_split.next();
