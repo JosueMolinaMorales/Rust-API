@@ -1,5 +1,5 @@
 use bson::{oid::ObjectId, Document, doc};
-use mongodb::{ Client, options::{ClientOptions, FindOneOptions, FindOptions}, Cursor };
+use mongodb::{ Client, options::{ClientOptions, FindOptions}, Cursor };
 
 use crate::{shared::{types::{ApiErrors, User, PasswordRecord, UpdatePasswordRecord, SecretRecord, UpdateSecretRecord}, env_config::{get_db_uri, get_db_name}}, modules::search_module::SearchParams};
 #[cfg(test)]
@@ -99,14 +99,26 @@ impl TMongoClient for MongoClient {
         }
     }
 
-    async fn search_secrets(&self, _: SearchParams) -> Result<Cursor<SecretRecord>, ApiErrors> {
-        match self.get_client()
+    async fn search_secrets(&self, params: SearchParams) -> Result<Cursor<SecretRecord>, ApiErrors> {
+        let mut filter = doc! {
+            "user_id": params.user_id
+        };
+
+        if let Some(key) = params.key {
+            filter.insert("key", key);
+        };
+
+        let find_options = FindOptions::builder()
+            .limit(if params.limit.is_some() { params.limit } else { Some(10) })
+            .skip(params.page)
+            .build();
+            
+        let res =  self.get_client()
             .database(&get_db_name())
             .collection::<SecretRecord>("secrets")
-            .find(doc!{}, None).await {
-                Ok(res) => Ok(res),
-                Err(err) => Err(ApiErrors::ServerError(err.to_string()))
-            }
+            .find(filter, find_options).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?;
+        Ok(res)
     }
     
     async fn email_exists(&self, email: &String) -> Result<bool, ApiErrors> {
