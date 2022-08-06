@@ -1,7 +1,7 @@
 use bson::{oid::ObjectId, Document, doc};
-use mongodb::{ Client, options::ClientOptions, Cursor };
+use mongodb::{ Client, options::{ClientOptions, FindOneOptions, FindOptions}, Cursor };
 
-use crate::shared::{types::{ApiErrors, User, PasswordRecord, UpdatePasswordRecord, SecretRecord, UpdateSecretRecord}, env_config::{get_db_uri, get_db_name}};
+use crate::{shared::{types::{ApiErrors, User, PasswordRecord, UpdatePasswordRecord, SecretRecord, UpdateSecretRecord}, env_config::{get_db_uri, get_db_name}}, modules::search_module::SearchParams};
 #[cfg(test)]
 use mockall::automock;
 
@@ -33,6 +33,11 @@ pub trait TMongoClient: Send + Sync {
     async fn get_all_secret_records(&self, user_id: ObjectId) -> Result<Cursor<SecretRecord>, ApiErrors>;
     async fn delete_secret(&self, secret_id: ObjectId, user_id: ObjectId) -> Result<(), ApiErrors>;
     async fn update_secret(&self, updated_secret: UpdateSecretRecord, secret_id: ObjectId, user_id: ObjectId) -> Result<(), ApiErrors>;
+
+    // Search
+    async fn search_records(&self, params: SearchParams) -> Result<Cursor<PasswordRecord>, ApiErrors>;
+    async fn search_secrets(&self, params: SearchParams) -> Result<Cursor<SecretRecord>, ApiErrors>;
+
     
 }
 
@@ -71,6 +76,39 @@ impl TMongoClient for MongoClient {
         self.client = Some(client);
     }
 
+    async fn search_records(&self, params: SearchParams) -> Result<Cursor<PasswordRecord>, ApiErrors> {
+        let mut filter = doc! {
+            "user_id": params.user_id
+        };
+
+        if let Some(service) = params.service {
+            filter.insert("service", service);
+        };
+
+        let find_options = FindOptions::builder()
+            .limit(if params.limit.is_some() { params.limit } else { Some(10) })
+            .skip(params.page)
+            .build();
+
+        match self.get_client()
+        .database(&get_db_name())
+        .collection::<PasswordRecord>("records")
+        .find(filter, find_options).await {
+            Ok(res) => Ok(res),
+            Err(err) => Err(ApiErrors::ServerError(err.to_string()))
+        }
+    }
+
+    async fn search_secrets(&self, _: SearchParams) -> Result<Cursor<SecretRecord>, ApiErrors> {
+        match self.get_client()
+            .database(&get_db_name())
+            .collection::<SecretRecord>("secrets")
+            .find(doc!{}, None).await {
+                Ok(res) => Ok(res),
+                Err(err) => Err(ApiErrors::ServerError(err.to_string()))
+            }
+    }
+    
     async fn email_exists(&self, email: &String) -> Result<bool, ApiErrors> {
         match self.get_client()
         .database(&get_db_name())

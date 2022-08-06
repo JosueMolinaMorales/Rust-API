@@ -2,7 +2,7 @@
 extern crate dotenv;
 use dotenv::dotenv;
 use drivers::mongodb::TMongoClient;
-use modules::{ auth_module, password_module, secrets_module };
+use modules::{ auth_module, password_module, secrets_module, search_module };
 pub mod shared;
 pub mod drivers;
 pub mod modules;
@@ -28,4 +28,5 @@ async fn rocket() -> _ {
     .mount("/auth/", auth_module::api())
     .mount("/password/", password_module::api())
     .mount("/secret/", secrets_module::api())
+    .mount("/search", search_module::api())
 }
