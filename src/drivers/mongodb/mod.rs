@@ -90,13 +90,13 @@ impl TMongoClient for MongoClient {
             .skip(params.page)
             .build();
 
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<PasswordRecord>("records")
-        .find(filter, find_options).await {
-            Ok(res) => Ok(res),
-            Err(err) => Err(ApiErrors::ServerError(err.to_string()))
-        }
+        let res = self.get_client()
+            .database(&get_db_name())
+            .collection::<PasswordRecord>("records")
+            .find(filter, find_options).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?;
+
+        Ok(res)
     }
 
     async fn search_secrets(&self, params: SearchParams) -> Result<Cursor<SecretRecord>, ApiErrors> {
@@ -122,81 +122,67 @@ impl TMongoClient for MongoClient {
     }
     
     async fn email_exists(&self, email: &String) -> Result<bool, ApiErrors> {
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<User>("users")
-        .count_documents(doc!{ "email": email }, None).await {
-            Ok(val) => Ok(val != 0),
-            Err(err) => Err(ApiErrors::ServerError(err.to_string()))
-        }
+        let count = self.get_client()
+            .database(&get_db_name())
+            .collection::<User>("users")
+            .count_documents(doc!{ "email": email }, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?;
+
+        Ok(count != 0)
     }
 
     async fn username_exists(&self, username: &String) -> Result<bool, ApiErrors> {
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<User>("users")
-        .count_documents(doc!{ "username": username }, None).await {
-            Ok(val) => Ok(val != 0),
-            Err(err) => Err(ApiErrors::ServerError(err.to_string()))
-        }
+        let count = self.get_client()
+            .database(&get_db_name())
+            .collection::<User>("users")
+            .count_documents(doc!{ "username": username }, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?;
+
+        Ok(count != 0)
     }
 
     async fn insert_user(&self, user: &User) -> Result<ObjectId, ApiErrors> {
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<User>("users")
-        .insert_one(user, None).await {
-            Ok(res) => {
-                if let Some(obj_id) = res.inserted_id.as_object_id() {
-                    Ok(obj_id)
-                } else {
-                    return Err(ApiErrors::ServerError("Error converting Object id".to_string()))
-                }
-            },
-            Err(_) => Err(ApiErrors::ServerError(String::from("There was an issue storing the user")))
-        }
+        let res = self.get_client()
+            .database(&get_db_name())
+            .collection::<User>("users")
+            .insert_one(user, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?
+            .inserted_id
+            .as_object_id()
+            .ok_or_else(|| ApiErrors::ServerError("Error".to_string()))?;
+        Ok(res)
     }
 
     async fn get_user(&self, username: &String) -> Result<User, ApiErrors>{
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<User>("users")
-        .find_one(doc!{ "username": username }, None).await {
-            Ok(user) => {
-                if let Some(a_user) = user {
-                    Ok(a_user)
-                } else {
-                    Err(ApiErrors::NotFound("User not found".to_string()))
-                }
-            },
-            Err(err) => Err(ApiErrors::BadRequest(err.to_string()))
-        }
+        let user = self.get_client()
+            .database(&get_db_name())
+            .collection::<User>("users")
+            .find_one(doc!{ "username": username }, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?
+            .ok_or_else(|| ApiErrors::BadRequest("User not found".to_string()))?;
+        Ok(user)
     }
 
     async fn get_all_user_records(&self, user_id: ObjectId) -> Result<Cursor<PasswordRecord>, ApiErrors> {
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<PasswordRecord>("records")
-        .find(doc!{ "user_id": user_id }, None).await {
-            Ok(res) => Ok(res),
-            Err(err) => Err(ApiErrors::ServerError(err.to_string()))
-        }
+        let res = self.get_client()
+            .database(&get_db_name())
+            .collection::<PasswordRecord>("records")
+            .find(doc!{ "user_id": user_id }, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?;
+        Ok(res)
     }
 
     async fn insert_record(&self, record: PasswordRecord) -> Result<ObjectId, ApiErrors> {
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<PasswordRecord>("records")
-        .insert_one(record, None).await {
-            Ok(res) => {
-                if let Some(obj_id) = res.inserted_id.as_object_id() {
-                    Ok(obj_id)
-                } else {
-                    return Err(ApiErrors::ServerError("Error converting Object id".to_string()))
-                }
-            },
-            Err(error) => Err(ApiErrors::ServerError(error.to_string()))
-        }
+        let obj_id = self.get_client()
+            .database(&get_db_name())
+            .collection::<PasswordRecord>("records")
+            .insert_one(record, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?
+            .inserted_id
+            .as_object_id()
+            .ok_or(ApiErrors::ServerError("Error converting object id".to_string()))?;
+
+        Ok(obj_id)
     }
 
     async fn get_record(
@@ -204,34 +190,24 @@ impl TMongoClient for MongoClient {
         record_id: ObjectId, 
         user_id: ObjectId
     ) -> Result<PasswordRecord, ApiErrors> {
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<PasswordRecord>("records")
-        .find_one(doc!{ "_id": record_id, "user_id": user_id }, None).await {
-            Ok(res) => {
-                if let Some(record) = res {
-                    Ok(record)
-                } else {
-                    Err(ApiErrors::NotFound("Record not found".to_string()))
-                }
-            },
-            Err(error) => Err(ApiErrors::ServerError(error.to_string()))
-        }
+        let record = self.get_client()
+            .database(&get_db_name())
+            .collection::<PasswordRecord>("records")
+            .find_one(doc!{ "_id": record_id, "user_id": user_id }, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?
+            .ok_or(ApiErrors::NotFound("Record not found".to_string()))?;
+        
+        Ok(record)
     }
 
     async fn delete_record(&self, record_id: ObjectId, user_id: ObjectId) -> Result<(), ApiErrors> {
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<PasswordRecord>("records")
-        .find_one_and_delete(doc! {"_id": record_id, "user_id": user_id}, None).await {
-            Ok(res) => {
-                if res.is_none() {
-                    return Err(ApiErrors::NotFound("Record not found".to_string()))
-                }
-                Ok(())
-            },
-            Err(error) => Err(ApiErrors::ServerError(error.to_string()))
-        }
+        self.get_client()
+            .database(&get_db_name())
+            .collection::<PasswordRecord>("records")
+            .find_one_and_delete(doc! {"_id": record_id, "user_id": user_id}, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?
+            .ok_or(ApiErrors::NotFound("Record not found".to_string()))?;
+        Ok(())
     }
 
     async fn update_record(
@@ -251,69 +227,56 @@ impl TMongoClient for MongoClient {
             update.insert("username", username);
         }
 
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<PasswordRecord>("records")
-        .find_one_and_update(doc! { "_id": record_id, "user_id": user_id }, doc!{ "$set": update }, None).await {
-            Ok(_) => Ok(()),
-            Err(error) => Err(ApiErrors::ServerError(error.to_string()))
-        }
+        self.get_client()
+            .database(&get_db_name())
+            .collection::<PasswordRecord>("records")
+            .find_one_and_update(doc! { "_id": record_id, "user_id": user_id }, doc!{ "$set": update }, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?;
+
+        Ok(())
     }
 
     async fn insert_secret(&self, secret_record: SecretRecord) -> Result<ObjectId, ApiErrors> {
-        match self.get_client()
-        .database(&get_db_name())
-        .collection("secrets")
-        .insert_one(secret_record, None).await {
-            Ok(res) => {
-                match res.inserted_id.as_object_id() {
-                    Some(id) => Ok(id),
-                    None => Err(ApiErrors::ServerError("Error Converting ObjectId".to_string()))
-                }
-            },
-            Err(err) => Err(ApiErrors::ServerError(err.to_string()))
-        }
+        let object_id = self.get_client()
+            .database(&get_db_name())
+            .collection("secrets")
+            .insert_one(secret_record, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?
+            .inserted_id
+            .as_object_id()
+            .ok_or(ApiErrors::ServerError("Error converting object id".to_string()))?;
+
+        Ok(object_id)
     }
 
     async fn get_all_secret_records(&self, user_id: ObjectId) -> Result<Cursor<SecretRecord>, ApiErrors> {
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<SecretRecord>("secrets")
-        .find(doc!{ "user_id": user_id }, None).await {
-            Ok(res) => Ok(res),
-            Err(err) => Err(ApiErrors::ServerError(err.to_string()))
-        }
+        let cursor = self.get_client()
+            .database(&get_db_name())
+            .collection::<SecretRecord>("secrets")
+            .find(doc!{ "user_id": user_id }, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?;
+        
+        Ok(cursor)
     }
 
     async fn get_secret(&self, secret_id: ObjectId, user_id: ObjectId) -> Result<SecretRecord, ApiErrors> {
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<SecretRecord>("secrets")
-        .find_one(doc! { "_id": secret_id, "user_id": user_id }, None).await {
-            Ok(res) => {
-                if let Some(secret) = res {
-                    return Ok(secret)
-                } else {
-                    return Err(ApiErrors::NotFound("Secret Record Not Found.".to_string()))
-                }
-            },
-            Err(err) => Err(ApiErrors::ServerError(err.to_string()))
-        }
+        let secret = self.get_client()
+            .database(&get_db_name())
+            .collection::<SecretRecord>("secrets")
+            .find_one(doc! { "_id": secret_id, "user_id": user_id }, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?
+            .ok_or(ApiErrors::NotFound("Secret Record Not Found".to_string()))?;
+        Ok(secret)
     }
 
     async fn delete_secret(&self, secret_id: ObjectId, user_id: ObjectId) -> Result<(), ApiErrors> {
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<SecretRecord>("secrets")
-        .find_one_and_delete(doc! { "_id": secret_id, "user_id": user_id }, None).await {
-            Ok(res) => {
-                if res.is_none() {
-                    return Err(ApiErrors::NotFound("Secret Record Not Found".to_string()))
-                }
-                Ok(())
-            },
-            Err(err) => Err(ApiErrors::ServerError(err.to_string()))
-        }
+        self.get_client()
+            .database(&get_db_name())
+            .collection::<SecretRecord>("secrets")
+            .find_one_and_delete(doc! { "_id": secret_id, "user_id": user_id }, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?
+            .ok_or(ApiErrors::NotFound("Secret Record Not Found".to_string()))?;
+        Ok(())
     }
 
     async fn update_secret(&self, updated_secret: UpdateSecretRecord, secret_id: ObjectId, user_id: ObjectId) -> Result<(), ApiErrors> {
@@ -326,12 +289,12 @@ impl TMongoClient for MongoClient {
             updated_document.insert("secret", secret);
         }
 
-        match self.get_client()
-        .database(&get_db_name())
-        .collection::<SecretRecord>("secrets")
-        .find_one_and_update(doc! { "_id": secret_id, "user_id": user_id }, updated_document, None).await {
-            Ok(_) => Ok(()),
-            Err(err) => Err(ApiErrors::ServerError(err.to_string()))
-        }
+        self.get_client()
+            .database(&get_db_name())
+            .collection::<SecretRecord>("secrets")
+            .find_one_and_update(doc! { "_id": secret_id, "user_id": user_id }, updated_document, None).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?;
+
+        Ok(())
     }
 }

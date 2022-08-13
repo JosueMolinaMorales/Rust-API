@@ -186,7 +186,6 @@ async fn search_password_records(
         .add_service(service);
 
     /* Call To component: component::search(db, search_params) */
-    // Inside search_params
     let mut res = db.search_records(search_params.build()).await?;
 
     let mut record_vec = Vec::new();
