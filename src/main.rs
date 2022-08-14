@@ -1,14 +1,15 @@
-#[macro_use] extern crate rocket;
+#[macro_use]
+extern crate rocket;
 extern crate dotenv;
 use dotenv::dotenv;
 use drivers::mongodb::TMongoClient;
-use modules::{ auth_module, password_module, secrets_module, search_module };
-pub mod shared;
+use modules::{auth_module, password_module, search_module, secrets_module};
 pub mod drivers;
 pub mod modules;
+pub mod shared;
 
-
-#[cfg(test)] mod tests;
+#[cfg(test)]
+mod tests;
 
 #[get("/")]
 fn index() -> &'static str {
@@ -23,10 +24,10 @@ async fn rocket() -> _ {
     db.connect().await;
 
     rocket::build()
-    .manage(Box::new(db) as Box<dyn TMongoClient>)
-    .mount("/", routes![index])
-    .mount("/auth/", auth_module::api())
-    .mount("/password/", password_module::api())
-    .mount("/secret/", secrets_module::api())
-    .mount("/search", search_module::api())
+        .manage(Box::new(db) as Box<dyn TMongoClient>)
+        .mount("/", routes![index])
+        .mount("/auth/", auth_module::api())
+        .mount("/password/", password_module::api())
+        .mount("/secret/", secrets_module::api())
+        .mount("/search", search_module::api())
 }

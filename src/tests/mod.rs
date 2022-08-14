@@ -1,13 +1,16 @@
 use crate::drivers::mongodb::{MockTMongoClient, TMongoClient};
 use crate::modules::{auth_module, password_module};
-use crate::shared::types::{RegistrationForm, ApiErrors, PasswordRecord, User, AuthResponse, LoginForm, UpdatePasswordRecord};
+use crate::shared::types::{
+    ApiErrors, AuthResponse, LoginForm, PasswordRecord, RegistrationForm, UpdatePasswordRecord,
+    User,
+};
 use bson::doc;
 use bson::oid::ObjectId;
 use dotenv::dotenv;
 
-use rocket::{Rocket, Build};
-use rocket::http::{Status, Header};
+use rocket::http::{Header, Status};
 use rocket::local::asynchronous::Client;
+use rocket::{Build, Rocket};
 
 static DNE_OBJECTID: &str = "62e474fa9a8304a30105e2e0";
 static AN_OBJECTID: &str = "62e489e380f15c93a32a7809";
@@ -25,13 +28,14 @@ static ENCRYPTED_PASSWORD: &str = "r7U7f8uiIzreDJMevRvx5g==";
 
 async fn mock_mongo_client() -> MockTMongoClient {
     let mut mock = MockTMongoClient::new();
-    
-    mock.expect_email_exists().returning(|email| {
-        Ok(*email == EMAIL_EXISTS.to_string())
-    });
+
+    mock.expect_email_exists()
+        .returning(|email| Ok(*email == EMAIL_EXISTS.to_string()));
 
     mock.expect_delete_record().returning(|record_id, user_id| {
-        if record_id.to_string() == DNE_OBJECTID.to_string() || user_id.to_string() == DNE_OBJECTID.to_string() {
+        if record_id.to_string() == DNE_OBJECTID.to_string()
+            || user_id.to_string() == DNE_OBJECTID.to_string()
+        {
             return Err(ApiErrors::NotFound("Not Found".to_string()));
         }
         Ok(())
@@ -39,12 +43,14 @@ async fn mock_mongo_client() -> MockTMongoClient {
 
     mock.expect_get_record().returning(|record_id, user_id| {
         // Return error
-        if record_id.to_string() == DNE_OBJECTID.to_string() || user_id.to_string() == DNE_OBJECTID.to_string() {
+        if record_id.to_string() == DNE_OBJECTID.to_string()
+            || user_id.to_string() == DNE_OBJECTID.to_string()
+        {
             return Err(ApiErrors::NotFound("Record not found".to_string()));
         }
 
         Ok(PasswordRecord {
-            id: Some(record_id) ,
+            id: Some(record_id),
             service: "Netflix".to_string(),
             password: ENCRYPTED_PASSWORD.to_string(),
             email: Some("email@email.com".to_string()),
@@ -55,29 +61,25 @@ async fn mock_mongo_client() -> MockTMongoClient {
 
     mock.expect_get_user().returning(|username| {
         if *username == DNE_USERNANME.to_string() {
-            return Err(ApiErrors::BadRequest("Username or Password is incorrect".to_string()))
+            return Err(ApiErrors::BadRequest(
+                "Username or Password is incorrect".to_string(),
+            ));
         }
         Ok(User {
             id: Some(ObjectId::new()),
             name: "Name".to_string(),
             email: "email".to_string(),
             username: "username".to_string(),
-            password : HASH_PASSWORD.to_string(),
+            password: HASH_PASSWORD.to_string(),
         })
     });
 
-    mock.expect_insert_record().returning(|_| {
-        Ok(ObjectId::parse_str(AN_OBJECTID).unwrap())
-    });
-    mock.expect_insert_user().returning(|_| {
-        Ok(ObjectId::new())
-    });
-    mock.expect_update_record().returning(|_, _, _| {
-        Ok(())
-    });
-    mock.expect_username_exists().returning(|username| {
-        Ok(*username == USERNAME_EXISTS.to_string())
-    });
+    mock.expect_insert_record()
+        .returning(|_| Ok(ObjectId::parse_str(AN_OBJECTID).unwrap()));
+    mock.expect_insert_user().returning(|_| Ok(ObjectId::new()));
+    mock.expect_update_record().returning(|_, _, _| Ok(()));
+    mock.expect_username_exists()
+        .returning(|username| Ok(*username == USERNAME_EXISTS.to_string()));
 
     mock
 }
@@ -88,9 +90,9 @@ async fn build_test_rocket() -> Rocket<Build> {
     let db = mock_mongo_client().await;
 
     rocket::build()
-    .manage(Box::new(db) as Box<dyn TMongoClient>)
-    .mount("/auth", auth_module::api())
-    .mount("/password/", password_module::api())
+        .manage(Box::new(db) as Box<dyn TMongoClient>)
+        .mount("/auth", auth_module::api())
+        .mount("/password/", password_module::api())
 }
 
 /* Auth Tests */
@@ -100,7 +102,7 @@ async fn register_success() {
         email: DNE_EMAIL.to_string(),
         password: "Password".to_string(),
         name: "Josue Morales".to_string(),
-        username: DNE_USERNANME.clone().to_string()
+        username: DNE_USERNANME.clone().to_string(),
     };
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
     let req = client.post("/auth/register").json(&req_body);
@@ -109,7 +111,7 @@ async fn register_success() {
 
     assert_eq!(res.status(), Status::Ok);
     let s1 = res.into_json::<AuthResponse>().await.unwrap().user;
-    
+
     assert_eq!(s1.email, req_body.email);
     assert_eq!(s1.name, req_body.name);
     assert_eq!(s1.username, req_body.username);
@@ -121,7 +123,7 @@ async fn register_fail_email_exist() {
         email: EMAIL_EXISTS.clone().to_string(),
         password: "password".to_string(),
         name: "Josue Morales".to_string(),
-        username: DNE_USERNANME.clone().to_string()
+        username: DNE_USERNANME.clone().to_string(),
     };
 
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
@@ -138,7 +140,7 @@ async fn register_fail_username_exist() {
         email: DNE_EMAIL.clone().to_string(),
         password: "password".to_string(),
         name: "Josue Morales".to_string(),
-        username: USERNAME_EXISTS.clone().to_string()
+        username: USERNAME_EXISTS.clone().to_string(),
     };
 
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
@@ -153,7 +155,7 @@ async fn register_fail_username_exist() {
 async fn login_success() {
     let req_body = LoginForm {
         username: USERNAME_EXISTS.clone().to_string(),
-        password: PASSWORD.to_string()
+        password: PASSWORD.to_string(),
     };
 
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
@@ -168,7 +170,7 @@ async fn login_success() {
 async fn login_fail_wrong_password() {
     let req_body = LoginForm {
         username: USERNAME_EXISTS.clone().to_string(),
-        password: WRONG_PASSWORD.to_string()
+        password: WRONG_PASSWORD.to_string(),
     };
 
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
@@ -183,7 +185,7 @@ async fn login_fail_wrong_password() {
 async fn login_fail_wrong_username() {
     let req_body = LoginForm {
         username: DNE_USERNANME.clone().to_string(),
-        password: WRONG_PASSWORD.to_string()
+        password: WRONG_PASSWORD.to_string(),
     };
 
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
@@ -197,15 +199,14 @@ async fn login_fail_wrong_username() {
 /* Authorization Errors */
 #[rocket::async_test]
 async fn no_authorization_header() {
-    let req_body = doc! { 
-        "service": "Netflix".to_string(), 
-        "password": "password123!".to_string(), 
-        "email": "molinajosue92@test.com".to_string(), 
+    let req_body = doc! {
+        "service": "Netflix".to_string(),
+        "password": "password123!".to_string(),
+        "email": "molinajosue92@test.com".to_string(),
     };
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
-    
-    let req = client.post("/password")
-        .json(&req_body);
+
+    let req = client.post("/password").json(&req_body);
 
     let res = req.dispatch().await;
 
@@ -214,14 +215,15 @@ async fn no_authorization_header() {
 
 #[rocket::async_test]
 async fn not_valid_auth_header() {
-    let req_body = doc! { 
-        "service": "Netflix".to_string(), 
-        "password": "password123!".to_string(), 
-        "email": "molinajosue92@test.com".to_string(), 
+    let req_body = doc! {
+        "service": "Netflix".to_string(),
+        "password": "password123!".to_string(),
+        "email": "molinajosue92@test.com".to_string(),
     };
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
-    
-    let req = client.post("/password")
+
+    let req = client
+        .post("/password")
         .json(&req_body)
         .header(Header::new("Authorization", NOT_VALID_TOKEN));
 
@@ -232,15 +234,16 @@ async fn not_valid_auth_header() {
 
 /* Password Manager Tests */
 #[rocket::async_test]
-async fn create_record_success () {
-    let req_body = doc! { 
-        "service": "Netflix".to_string(), 
-        "password": "password123!".to_string(), 
-        "email": "molinajosue92@test.com".to_string(), 
+async fn create_record_success() {
+    let req_body = doc! {
+        "service": "Netflix".to_string(),
+        "password": "password123!".to_string(),
+        "email": "molinajosue92@test.com".to_string(),
     };
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
-    
-    let req = client.post("/password")
+
+    let req = client
+        .post("/password")
         .json(&req_body)
         .header(Header::new("Authorization", BEARER_TOKEN));
 
@@ -251,17 +254,18 @@ async fn create_record_success () {
 
 #[rocket::async_test]
 async fn update_record_success() {
-    let req_body = UpdatePasswordRecord { 
-        password: Some("new_password123".to_string()), 
-        email: Some("new_email@as.com".to_string()), 
-        username: None
+    let req_body = UpdatePasswordRecord {
+        password: Some("new_password123".to_string()),
+        email: Some("new_email@as.com".to_string()),
+        username: None,
     };
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
 
-    let req = client.patch(format!("/password/{}", AN_OBJECTID))
+    let req = client
+        .patch(format!("/password/{}", AN_OBJECTID))
         .json(&req_body)
         .header(Header::new("Authorization", BEARER_TOKEN));
-    
+
     let res = req.dispatch().await;
 
     assert_eq!(res.status(), Status::NoContent);
@@ -269,17 +273,18 @@ async fn update_record_success() {
 
 #[rocket::async_test]
 async fn update_record_fail_record_dne() {
-    let req_body = UpdatePasswordRecord { 
-        password: Some("new_password123".to_string()), 
-        email: Some("new_email@as.com".to_string()), 
-        username: None
+    let req_body = UpdatePasswordRecord {
+        password: Some("new_password123".to_string()),
+        email: Some("new_email@as.com".to_string()),
+        username: None,
     };
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
 
-    let req = client.patch(format!("/password/{}", DNE_OBJECTID))
+    let req = client
+        .patch(format!("/password/{}", DNE_OBJECTID))
         .json(&req_body)
         .header(Header::new("Authorization", BEARER_TOKEN));
-    
+
     let res = req.dispatch().await;
 
     assert_eq!(res.status(), Status::NotFound);
@@ -287,17 +292,18 @@ async fn update_record_fail_record_dne() {
 
 #[rocket::async_test]
 async fn update_record_fail_user_dne() {
-    let req_body = UpdatePasswordRecord { 
-        password: Some("new_password123".to_string()), 
-        email: Some("new_email@as.com".to_string()), 
-        username: None
+    let req_body = UpdatePasswordRecord {
+        password: Some("new_password123".to_string()),
+        email: Some("new_email@as.com".to_string()),
+        username: None,
     };
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
 
-    let req = client.patch(format!("/password/{}", AN_OBJECTID))
+    let req = client
+        .patch(format!("/password/{}", AN_OBJECTID))
         .json(&req_body)
         .header(Header::new("Authorization", BEARER_TOKEN_USER_DNE));
-    
+
     let res = req.dispatch().await;
 
     assert_eq!(res.status(), Status::NotFound);
@@ -307,9 +313,10 @@ async fn update_record_fail_user_dne() {
 async fn delete_record_success() {
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
 
-    let req = client.delete(format!("/password/{}", AN_OBJECTID))
+    let req = client
+        .delete(format!("/password/{}", AN_OBJECTID))
         .header(Header::new("Authorization", BEARER_TOKEN));
-    
+
     let res = req.dispatch().await;
 
     assert_eq!(res.status(), Status::NoContent);
@@ -319,9 +326,10 @@ async fn delete_record_success() {
 async fn delete_record_fail_record_dne() {
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
 
-    let req = client.delete(format!("/password/{}", DNE_OBJECTID))
+    let req = client
+        .delete(format!("/password/{}", DNE_OBJECTID))
         .header(Header::new("Authorization", BEARER_TOKEN));
-    
+
     let res = req.dispatch().await;
 
     assert_eq!(res.status(), Status::NotFound);
@@ -331,9 +339,10 @@ async fn delete_record_fail_record_dne() {
 async fn delete_record_fail_user_dne() {
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
 
-    let req = client.delete(format!("/password/{}", AN_OBJECTID))
+    let req = client
+        .delete(format!("/password/{}", AN_OBJECTID))
         .header(Header::new("Authorization", BEARER_TOKEN_USER_DNE));
-    
+
     let res = req.dispatch().await;
 
     assert_eq!(res.status(), Status::NotFound);
@@ -343,9 +352,10 @@ async fn delete_record_fail_user_dne() {
 async fn get_record_success() {
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
 
-    let req = client.get(format!("/password/{}", AN_OBJECTID))
+    let req = client
+        .get(format!("/password/{}", AN_OBJECTID))
         .header(Header::new("Authorization", BEARER_TOKEN));
-    
+
     let res = req.dispatch().await;
 
     assert_eq!(res.status(), Status::Ok);
@@ -355,9 +365,10 @@ async fn get_record_success() {
 async fn get_record_fail_record_dne() {
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
 
-    let req = client.get(format!("/password/{}", DNE_OBJECTID))
+    let req = client
+        .get(format!("/password/{}", DNE_OBJECTID))
         .header(Header::new("Authorization", BEARER_TOKEN));
-    
+
     let res = req.dispatch().await;
 
     assert_eq!(res.status(), Status::NotFound);
@@ -367,11 +378,11 @@ async fn get_record_fail_record_dne() {
 async fn get_record_fail_user_dne() {
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
 
-    let req = client.get(format!("/password/{}", AN_OBJECTID))
+    let req = client
+        .get(format!("/password/{}", AN_OBJECTID))
         .header(Header::new("Authorization", BEARER_TOKEN_USER_DNE));
-    
+
     let res = req.dispatch().await;
 
     assert_eq!(res.status(), Status::NotFound);
 }
-

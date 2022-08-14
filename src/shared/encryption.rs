@@ -12,6 +12,8 @@ pub fn decrypt_password(encrypted: &String) -> Result<String, ApiErrors> {
     let mc = new_magic_crypt!("magickey", 256);
     match mc.decrypt_base64_to_string(encrypted) {
         Ok(res) => Ok(res),
-        Err(_) => Err(ApiErrors::ServerError("There was an issue decrypting".to_string()))
+        Err(_) => Err(ApiErrors::ServerError(
+            "There was an issue decrypting".to_string(),
+        )),
     }
 }

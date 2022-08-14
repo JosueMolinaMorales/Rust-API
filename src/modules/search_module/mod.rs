@@ -8,10 +8,10 @@
 */
 use rocket::{futures::stream::StreamExt, serde::json::Json};
 
-#[derive(Debug, PartialEq, FromFormField)]
+#[derive(Debug, Eq, PartialEq, FromFormField)]
 pub enum RecordTypes {
     Password,
-    Secret
+    Secret,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,12 +26,12 @@ pub struct SearchResponse {
 
 impl SearchResponse {
     pub fn build_secret(key: Option<String>, secret: Option<String>) -> SearchResponse {
-        SearchResponse { 
-            username: None, 
-            password: None, 
-            email: None, 
-            key, 
-            secret 
+        SearchResponse {
+            username: None,
+            password: None,
+            email: None,
+            key,
+            secret,
         }
     }
 }
@@ -48,21 +48,21 @@ pub struct SearchParamsBuilder {
 
 impl SearchParamsBuilder {
     pub fn new(user_id: ObjectId) -> SearchParamsBuilder {
-        SearchParamsBuilder { 
-            user_id, 
+        SearchParamsBuilder {
+            user_id,
             password_record: None,
-            secret_record: None, 
-            page: None, 
-            service: None, 
-            key: None, 
-            limit: None
+            secret_record: None,
+            page: None,
+            service: None,
+            key: None,
+            limit: None,
         }
     }
 
     pub fn add_record(mut self, record_type: RecordTypes) -> Self {
         match record_type {
             RecordTypes::Password => self.password_record = Some(RecordTypes::Password),
-            RecordTypes::Secret => self.secret_record = Some(RecordTypes::Secret)
+            RecordTypes::Secret => self.secret_record = Some(RecordTypes::Secret),
         };
         self
     }
@@ -88,14 +88,14 @@ impl SearchParamsBuilder {
     }
 
     pub fn build(self) -> SearchParams {
-        SearchParams { 
-            user_id: self.user_id, 
-            password_record: self.password_record, 
-            secret_record: self.secret_record, 
-            page: self.page, 
-            service: self.service, 
-            key: self.key, 
-            limit: self.limit
+        SearchParams {
+            user_id: self.user_id,
+            password_record: self.password_record,
+            secret_record: self.secret_record,
+            page: self.page,
+            service: self.service,
+            key: self.key,
+            limit: self.limit,
         }
     }
 }
@@ -104,7 +104,7 @@ impl SearchParamsBuilder {
 pub struct SearchParams {
     pub user_id: ObjectId,
     pub password_record: Option<RecordTypes>,
-    pub secret_record: Option<RecordTypes>, 
+    pub secret_record: Option<RecordTypes>,
     pub page: Option<u64>,
     pub service: Option<String>,
     pub key: Option<String>,
@@ -113,9 +113,16 @@ pub struct SearchParams {
 
 use bson::oid::ObjectId;
 use rocket::State;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::{drivers::mongodb::TMongoClient, shared::{types::{ApiErrors, ResponsePasswordRecord}, jwt_service::Token, encryption::decrypt_password}};
+use crate::{
+    drivers::mongodb::TMongoClient,
+    shared::{
+        encryption::decrypt_password,
+        jwt_service::Token,
+        types::{ApiErrors, ResponsePasswordRecord},
+    },
+};
 
 #[get("/secret/<user_id>?<page>&<service>&<key>&<limit>")]
 async fn search_secret_records(
@@ -125,17 +132,17 @@ async fn search_secret_records(
     service: Option<String>,
     key: Option<String>,
     limit: Option<i64>,
-    token: Token
+    token: Token,
 ) -> Result<Json<Vec<SearchResponse>>, ApiErrors> {
     // Validate user_id
     let user_id = ObjectId::parse_str(user_id)
         .map_err(|_| ApiErrors::BadRequest("Provided Id is not an object id".to_string()))?;
-    
+
     // Check to see if the provided user_id is the same as the token.id
     if user_id != token.id {
-        return Err(ApiErrors::BadRequest("Not Authorized".to_string()))
+        return Err(ApiErrors::BadRequest("Not Authorized".to_string()));
     }
-    
+
     let search_params = SearchParamsBuilder::new(user_id)
         .add_key(key)
         .add_limit(limit)
@@ -155,7 +162,10 @@ async fn search_secret_records(
         record.secret = decrypt_password(&record.secret)?;
 
         // add to vector
-        record_vec.push(SearchResponse::build_secret(Some(record.key), Some(record.secret)));
+        record_vec.push(SearchResponse::build_secret(
+            Some(record.key),
+            Some(record.secret),
+        ));
     }
     Ok(Json(record_vec))
 }
@@ -168,17 +178,17 @@ async fn search_password_records(
     service: Option<String>,
     key: Option<String>,
     limit: Option<i64>,
-    token: Token
+    token: Token,
 ) -> Result<Json<Vec<ResponsePasswordRecord>>, ApiErrors> {
     // Validate user_id
     let user_id = ObjectId::parse_str(user_id)
         .map_err(|_| ApiErrors::BadRequest("Provided Id is not an object id".to_string()))?;
-    
+
     // Check to see if the provided user_id is the same as the token.id
     if user_id != token.id {
-        return Err(ApiErrors::BadRequest("Not Authorized".to_string()))
+        return Err(ApiErrors::BadRequest("Not Authorized".to_string()));
     }
-    
+
     let search_params = SearchParamsBuilder::new(user_id)
         .add_key(key)
         .add_limit(limit)
@@ -195,26 +205,29 @@ async fn search_password_records(
         // Decrypt Password
         record.password = decrypt_password(&record.password)?;
 
-        let id = record.id.ok_or(ApiErrors::ServerError("No Objectid".to_string()))?.to_string();
+        let id = record
+            .id
+            .ok_or_else(|| ApiErrors::ServerError("No Objectid".to_string()))?
+            .to_string();
 
-        let user_id = record.user_id.ok_or(ApiErrors::ServerError("No Objectid".to_string()))?.to_string();
+        let user_id = record
+            .user_id
+            .ok_or_else(|| ApiErrors::ServerError("No Objectid".to_string()))?
+            .to_string();
 
         // add to vector
-        record_vec.push(ResponsePasswordRecord { 
-            id, 
-            service: record.service, 
-            password: record.password, 
-            email: record.email, 
-            username: record.username, 
-            user_id 
+        record_vec.push(ResponsePasswordRecord {
+            id,
+            service: record.service,
+            password: record.password,
+            email: record.email,
+            username: record.username,
+            user_id,
         });
     }
     Ok(Json(record_vec))
 }
 
 pub fn api() -> Vec<rocket::Route> {
-    rocket::routes![
-        search_password_records,
-        search_secret_records
-    ]
+    rocket::routes![search_password_records, search_secret_records]
 }

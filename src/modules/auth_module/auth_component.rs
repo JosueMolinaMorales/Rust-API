@@ -1,11 +1,16 @@
-use crate::{shared::{types::{RegistrationForm, User, ApiErrors, LoginForm, AuthUser, AuthResponse}, jwt_service::sign_token}, drivers::mongodb::TMongoClient};
+use crate::{
+    drivers::mongodb::TMongoClient,
+    shared::{
+        jwt_service::sign_token,
+        types::{ApiErrors, AuthResponse, AuthUser, LoginForm, RegistrationForm, User},
+    },
+};
 use pwhash::bcrypt;
 use rocket::State;
 
-
 pub async fn register(
-    db: &State<Box<dyn TMongoClient>>, 
-    register_form: &mut RegistrationForm
+    db: &State<Box<dyn TMongoClient>>,
+    register_form: &mut RegistrationForm,
 ) -> Result<AuthResponse, ApiErrors> {
     /*
         Check if email exists -> check if email exists -> hash password -> insert user
@@ -14,12 +19,18 @@ pub async fn register(
         return Err(ApiErrors::BadRequest(String::from("Email already exists")));
     }
     if db.username_exists(&register_form.username).await? {
-        return Err(ApiErrors::BadRequest(String::from("Username already exists")));
+        return Err(ApiErrors::BadRequest(String::from(
+            "Username already exists",
+        )));
     }
 
     register_form.password = match bcrypt::hash(&register_form.password) {
         Ok(hash) => hash,
-        Err(_) => return Err(ApiErrors::ServerError(String::from("There was an error hashing the password")))
+        Err(_) => {
+            return Err(ApiErrors::ServerError(String::from(
+                "There was an error hashing the password",
+            )))
+        }
     };
 
     // Create User
@@ -28,9 +39,9 @@ pub async fn register(
         name: String::from(&register_form.name),
         email: String::from(&register_form.email).to_lowercase(),
         username: String::from(&register_form.username).to_lowercase(),
-        password: String::from(&register_form.password)
+        password: String::from(&register_form.password),
     };
-    
+
     // Insert user
     let id = db.insert_user(&user).await?;
 
@@ -40,37 +51,42 @@ pub async fn register(
             email: String::from(&register_form.email),
             username: String::from(&register_form.username),
         },
-        token: sign_token(&id.to_string())?
+        token: sign_token(&id.to_string())?,
     })
 }
 
-pub async fn login(db: &State<Box<dyn TMongoClient>>, info: LoginForm) -> Result<AuthResponse, ApiErrors> {
+pub async fn login(
+    db: &State<Box<dyn TMongoClient>>,
+    info: LoginForm,
+) -> Result<AuthResponse, ApiErrors> {
     let err_msg = String::from("Username or password is incorrect");
 
     // Check to see if user exists
     let user = match db.get_user(&info.username.to_lowercase()).await {
         Ok(user) => user,
-        Err(_) => return Err(ApiErrors::BadRequest(err_msg))
+        Err(_) => return Err(ApiErrors::BadRequest(err_msg)),
     };
 
     // Match Password
     if !bcrypt::verify(&info.password, &user.password) {
-        return Err(ApiErrors::BadRequest(err_msg))
+        return Err(ApiErrors::BadRequest(err_msg));
     }
 
     let id = match user.id {
         Some(id) => id,
-        None => return Err(ApiErrors::ServerError("There was an issue with the id".to_string()))
+        None => {
+            return Err(ApiErrors::ServerError(
+                "There was an issue with the id".to_string(),
+            ))
+        }
     };
 
     Ok(AuthResponse {
-            user: AuthUser {
-                email: user.email,
-                name: user.name,
-                username: user.username
-            },
-            token: sign_token(&id.to_string())?
+        user: AuthUser {
+            email: user.email,
+            name: user.name,
+            username: user.username,
+        },
+        token: sign_token(&id.to_string())?,
     })
 }
-
-
