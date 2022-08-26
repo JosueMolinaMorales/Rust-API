@@ -1,4 +1,4 @@
-use crate::drivers::mongodb::{MockTMongoClient, TMongoClient};
+use crate::drivers::mongodb::mongo_trait::{MockTMongoClient, TMongoClient};
 use crate::modules::{auth_module, password_module};
 use crate::shared::types::{
     ApiErrors, AuthResponse, LoginForm, PasswordRecord, RegistrationForm, UpdatePasswordRecord,

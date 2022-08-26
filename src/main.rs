@@ -2,7 +2,7 @@
 extern crate rocket;
 extern crate dotenv;
 use dotenv::dotenv;
-use drivers::mongodb::TMongoClient;
+use crate::drivers::mongodb::mongo_trait::TMongoClient;
 use modules::{auth_module, password_module, search_module, secrets_module};
 pub mod drivers;
 pub mod modules;

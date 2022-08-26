@@ -1,9 +1,8 @@
 use crate::{
-    drivers::mongodb::TMongoClient,
     shared::{
         jwt_service::sign_token,
         types::{ApiErrors, AuthResponse, AuthUser, LoginForm, RegistrationForm, User},
-    },
+    }, drivers::mongodb::mongo_trait::TMongoClient,
 };
 use pwhash::bcrypt;
 use rocket::State;

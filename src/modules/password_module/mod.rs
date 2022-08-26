@@ -1,7 +1,7 @@
 pub mod component;
 
 use crate::{
-    drivers::mongodb::TMongoClient,
+    drivers::mongodb::mongo_trait::TMongoClient,
     shared::{
         jwt_service::Token,
         types::{

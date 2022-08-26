@@ -2,7 +2,7 @@ use bson::oid::ObjectId;
 use rocket::{futures::stream::StreamExt, State};
 
 use crate::{
-    drivers::mongodb::TMongoClient,
+    drivers::mongodb::mongo_trait::TMongoClient,
     shared::{
         encryption::{decrypt_password, encrypt_data},
         types::{ApiErrors, SecretRecord, UpdateSecretRecord},

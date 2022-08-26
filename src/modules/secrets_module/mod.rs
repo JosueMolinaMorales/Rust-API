@@ -11,7 +11,7 @@ pub mod component;
 use std::str::FromStr;
 
 use crate::{
-    drivers::mongodb::TMongoClient,
+    drivers::mongodb::mongo_trait::TMongoClient,
     shared::{
         jwt_service::Token,
         types::{ApiErrors, SecretRecord, UpdateSecretRecord},

@@ -116,7 +116,7 @@ use rocket::State;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    drivers::mongodb::TMongoClient,
+    drivers::mongodb::mongo_trait::TMongoClient,
     shared::{
         encryption::decrypt_password,
         jwt_service::Token,

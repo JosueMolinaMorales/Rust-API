@@ -1,4 +1,4 @@
-use crate::drivers::mongodb::TMongoClient;
+use crate::drivers::mongodb::mongo_trait::TMongoClient;
 use crate::shared::types::RegistrationForm;
 use crate::shared::types::{ApiErrors, AuthResponse, LoginForm};
 use rocket::{serde::json::Json, State};
