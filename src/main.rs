@@ -13,7 +13,7 @@ mod tests;
 
 #[get("/")]
 fn index() -> &'static str {
-    "Hello world!"
+    "Welcome to the Password Manager API"
 }
 
 #[launch]
