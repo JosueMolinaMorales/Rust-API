@@ -199,7 +199,7 @@ async fn search_password_records(
     let mut res = db.search_records(search_params.build()).await?;
 
     let mut record_vec = Vec::new();
-    dbg!(&record_vec);
+    
     while let Some(record) = res.next().await {
         let mut record = record.map_err(|err| ApiErrors::ServerError(err.to_string()))?;
         // Decrypt Password
