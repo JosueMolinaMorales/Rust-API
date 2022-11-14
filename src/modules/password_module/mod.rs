@@ -5,8 +5,8 @@ use crate::{
     shared::{
         jwt_service::Token,
         types::{
-            ApiErrors, CreatedResponse, PasswordRecord, ResponsePasswordRecord,
-            UpdatePasswordRecord,
+            ApiErrors, CreatedResponse,
+            Record, ResponseRecord, UpdateRecord,
         },
     },
 };
@@ -27,7 +27,7 @@ pub async fn get_all_user_records(
     db: &State<Box<dyn TMongoClient>>,
     user_id: String,
     token: Token,
-) -> Result<Json<Vec<ResponsePasswordRecord>>, ApiErrors> {
+) -> Result<Json<Vec<ResponseRecord>>, ApiErrors> {
     let user_id = match ObjectId::parse_str(user_id) {
         Ok(res) => res,
         Err(_) => {
@@ -48,7 +48,7 @@ pub async fn get_record(
     db: &State<Box<dyn TMongoClient>>,
     id: String,
     user_id: Token,
-) -> Result<Json<ResponsePasswordRecord>, ApiErrors> {
+) -> Result<Json<ResponseRecord>, ApiErrors> {
     let record_id = match ObjectId::parse_str(id) {
         Ok(res) => res,
         Err(_) => {
@@ -59,29 +59,14 @@ pub async fn get_record(
     };
 
     let res = component::get_record(db, record_id, user_id.id).await?;
-    let id = match res.id {
-        Some(id) => id.to_string(),
-        None => return Err(ApiErrors::ServerError("Internal Service Error".to_string())),
-    };
-    let user_id = match res.user_id {
-        Some(user_id) => user_id.to_string(),
-        None => return Err(ApiErrors::ServerError("Internal Service Error".to_string())),
-    };
 
-    Ok(Json(ResponsePasswordRecord {
-        id,
-        service: res.service,
-        password: res.password,
-        email: res.email,
-        username: res.username,
-        user_id,
-    }))
+    Ok(Json(res))
 }
 
 #[post("/", data = "<record>")]
 pub async fn create_record(
     db: &State<Box<dyn TMongoClient>>,
-    record: Json<PasswordRecord>,
+    record: Json<Record>,
     id: Token,
 ) -> Result<CreatedResponse, ApiErrors> {
     let res = component::create_record(db, record.0, id.id).await?;
@@ -93,7 +78,7 @@ pub async fn create_record(
 #[patch("/<id>", data = "<updated_record>")]
 pub async fn update_record(
     db: &State<Box<dyn TMongoClient>>,
-    updated_record: Json<UpdatePasswordRecord>,
+    updated_record: Json<UpdateRecord>,
     id: String,
     user_id: Token,
 ) -> Result<Status, ApiErrors> {

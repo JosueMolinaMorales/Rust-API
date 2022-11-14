@@ -8,14 +8,15 @@
 */
 use rocket::{futures::stream::StreamExt, serde::json::Json};
 
-#[derive(Debug, Eq, PartialEq, FromFormField)]
-pub enum RecordTypes {
-    Password,
-    Secret,
-}
+pub mod component;
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchResponse {
+    id: String,
+    user_id: String,
+    record_type: RecordTypes,
+    service: Option<String>,
     username: Option<String>,
     password: Option<String>,
     email: Option<String>,
@@ -25,11 +26,25 @@ pub struct SearchResponse {
 }
 
 impl SearchResponse {
-    pub fn build_secret(key: Option<String>, secret: Option<String>) -> SearchResponse {
+    pub fn new(
+        id: String,
+        user_id: String,
+        record_type: RecordTypes,
+        service: Option<String>,
+        username: Option<String>,
+        password: Option<String>,
+        email: Option<String>,
+        key: Option<String>,
+        secret: Option<String>,
+    ) -> SearchResponse {
         SearchResponse {
-            username: None,
-            password: None,
-            email: None,
+            id,
+            user_id,
+            record_type,
+            username,
+            service,
+            password,
+            email,
             key,
             secret,
         }
@@ -100,7 +115,7 @@ impl SearchParamsBuilder {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SearchParams {
     pub user_id: ObjectId,
     pub password_record: Option<RecordTypes>,
@@ -120,7 +135,7 @@ use crate::{
     shared::{
         encryption::decrypt_password,
         jwt_service::Token,
-        types::{ApiErrors, ResponsePasswordRecord},
+        types::{ApiErrors, ResponsePasswordRecord, RecordTypes},
     },
 };
 
@@ -151,22 +166,8 @@ async fn search_secret_records(
         .build();
 
     /* Call To component: component::search(db, search_params) */
-    // Inside search_params
-    let mut res = db.search_secrets(search_params).await?;
-
-    let mut record_vec = Vec::new();
-
-    while let Some(record) = res.next().await {
-        let mut record = record.map_err(|err| ApiErrors::ServerError(err.to_string()))?;
-        // Decrypt Password
-        record.secret = decrypt_password(&record.secret)?;
-
-        // add to vector
-        record_vec.push(SearchResponse::build_secret(
-            Some(record.key),
-            Some(record.secret),
-        ));
-    }
+   let record_vec = component::search_password_records(db, user_id, search_params).await?;
+   
     Ok(Json(record_vec))
 }
 
@@ -179,7 +180,7 @@ async fn search_password_records(
     key: Option<String>,
     limit: Option<i64>,
     token: Token,
-) -> Result<Json<Vec<ResponsePasswordRecord>>, ApiErrors> {
+) -> Result<Json<Vec<SearchResponse>>, ApiErrors> {
     // Validate user_id
     let user_id = ObjectId::parse_str(user_id)
         .map_err(|_| ApiErrors::BadRequest("Provided Id is not an object id".to_string()))?;
@@ -193,41 +194,57 @@ async fn search_password_records(
         .add_key(key)
         .add_limit(limit)
         .add_page(page)
-        .add_service(service);
+        .add_service(service)
+        .build();
 
     /* Call To component: component::search(db, search_params) */
-    let mut res = db.search_records(search_params.build()).await?;
-
-    let mut record_vec = Vec::new();
-    
-    while let Some(record) = res.next().await {
-        let mut record = record.map_err(|err| ApiErrors::ServerError(err.to_string()))?;
-        // Decrypt Password
-        record.password = decrypt_password(&record.password)?;
-
-        let id = record
-            .id
-            .ok_or_else(|| ApiErrors::ServerError("No Objectid".to_string()))?
-            .to_string();
-
-        let user_id = record
-            .user_id
-            .ok_or_else(|| ApiErrors::ServerError("No Objectid".to_string()))?
-            .to_string();
-
-        // add to vector
-        record_vec.push(ResponsePasswordRecord {
-            id,
-            service: record.service,
-            password: record.password,
-            email: record.email,
-            username: record.username,
-            user_id,
-        });
-    }
+    let record_vec = component::search_secret_records(db, search_params).await?;
     Ok(Json(record_vec))
 }
 
+#[get("/record/<user_id>?<page>&<service>&<key>&<limit>")]
+async fn search_records(
+    db: &State<Box<dyn TMongoClient>>,
+    user_id: String,
+    page: Option<u64>,
+    service: Option<String>,
+    key: Option<String>,
+    limit: Option<i64>,
+    token: Token,
+) -> Result<Json<Vec<SearchResponse>>, ApiErrors>{
+    // Validate user_id
+    let user_id = ObjectId::parse_str(user_id)
+        .map_err(|_| ApiErrors::BadRequest("Provided Id is not an object id".to_string()))?;
+
+    // Check to see if the provided user_id is the same as the token.id
+    if user_id != token.id {
+        return Err(ApiErrors::BadRequest("Not Authorized".to_string()));
+    }
+
+    let search_params = SearchParamsBuilder::new(user_id)
+        .add_key(key)
+        .add_limit(limit)
+        .add_page(page)
+        .add_service(service)
+        .build();
+    let mut response_vector: Vec<SearchResponse> = vec![];
+
+    
+    let mut password_records = component::search_password_records(db, user_id, search_params.clone()).await?;
+    
+    response_vector.append(&mut password_records);
+
+    let mut secret_records = component::search_secret_records(db, search_params).await?;
+
+    response_vector.append(&mut secret_records);
+
+    Ok(Json(response_vector))
+}
+
 pub fn api() -> Vec<rocket::Route> {
-    rocket::routes![search_password_records, search_secret_records]
+    rocket::routes![
+        search_password_records, 
+        search_secret_records,
+        search_records
+    ]
 }

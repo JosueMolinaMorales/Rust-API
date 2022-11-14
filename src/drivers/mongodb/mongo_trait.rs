@@ -1,6 +1,6 @@
 use bson::oid::ObjectId;
 use mongodb::Cursor;
-use crate::{shared::types::{ApiErrors, User, PasswordRecord, UpdatePasswordRecord, SecretRecord, UpdateSecretRecord}, modules::search_module::SearchParams};
+use crate::{shared::types::{ApiErrors, User, PasswordRecord, SecretRecord, UpdateSecretRecord, Record, UpdateRecord}, modules::search_module::SearchParams};
 
 #[cfg(test)]
 use mockall::automock;
@@ -16,20 +16,20 @@ pub trait TMongoClient: Send + Sync {
     async fn get_user(&self, username: &str) -> Result<User, ApiErrors>;
 
     // Password Record Methods
-    async fn insert_record(&self, record: PasswordRecord) -> Result<ObjectId, ApiErrors>;
+    async fn insert_record(&self, record: Record) -> Result<ObjectId, ApiErrors>;
     async fn get_record(
         &self,
         record_id: ObjectId,
         user_id: ObjectId,
-    ) -> Result<PasswordRecord, ApiErrors>;
+    ) -> Result<Record, ApiErrors>;
     async fn get_all_user_records(
         &self,
         user_id: ObjectId,
-    ) -> Result<Cursor<PasswordRecord>, ApiErrors>;
+    ) -> Result<Cursor<Record>, ApiErrors>;
     async fn delete_record(&self, record_id: ObjectId, user_id: ObjectId) -> Result<(), ApiErrors>;
     async fn update_record(
         &self,
-        updated_record: UpdatePasswordRecord,
+        updated_record: UpdateRecord,
         record_id: ObjectId,
         user_id: ObjectId,
     ) -> Result<(), ApiErrors>;

@@ -1,6 +1,6 @@
 pub mod mongo_trait;
 
-use crate::drivers::mongodb::mongo_trait::TMongoClient;
+use crate::{drivers::mongodb::mongo_trait::TMongoClient, shared::types::{Record, UpdateRecord}};
 use bson::{doc, oid::ObjectId, Document};
 use mongodb::{
     options::{ClientOptions, FindOptions},
@@ -12,7 +12,7 @@ use crate::{
     shared::{
         env_config::{get_db_name, get_db_uri},
         types::{
-            ApiErrors, PasswordRecord, SecretRecord, UpdatePasswordRecord, UpdateSecretRecord, User,
+            ApiErrors, PasswordRecord, SecretRecord, UpdateSecretRecord, User,
         },
     },
 };
@@ -176,22 +176,22 @@ impl TMongoClient for MongoClient {
     async fn get_all_user_records(
         &self,
         user_id: ObjectId,
-    ) -> Result<Cursor<PasswordRecord>, ApiErrors> {
+    ) -> Result<Cursor<Record>, ApiErrors> {
         let res = self
             .get_client()
             .database(&get_db_name())
-            .collection::<PasswordRecord>("records")
+            .collection::<Record>("records")
             .find(doc! { "user_id": user_id }, None)
             .await
             .map_err(|err| ApiErrors::ServerError(err.to_string()))?;
         Ok(res)
     }
 
-    async fn insert_record(&self, record: PasswordRecord) -> Result<ObjectId, ApiErrors> {
+    async fn insert_record(&self, record: Record) -> Result<ObjectId, ApiErrors> {
         let obj_id = self
             .get_client()
             .database(&get_db_name())
-            .collection::<PasswordRecord>("records")
+            .collection::<Record>("records")
             .insert_one(record, None)
             .await
             .map_err(|err| ApiErrors::ServerError(err.to_string()))?
@@ -206,11 +206,11 @@ impl TMongoClient for MongoClient {
         &self,
         record_id: ObjectId,
         user_id: ObjectId,
-    ) -> Result<PasswordRecord, ApiErrors> {
+    ) -> Result<Record, ApiErrors> {
         let record = self
             .get_client()
             .database(&get_db_name())
-            .collection::<PasswordRecord>("records")
+            .collection::<Record>("records")
             .find_one(doc! { "_id": record_id, "user_id": user_id }, None)
             .await
             .map_err(|err| ApiErrors::ServerError(err.to_string()))?
@@ -232,7 +232,7 @@ impl TMongoClient for MongoClient {
 
     async fn update_record(
         &self,
-        updated_record: UpdatePasswordRecord,
+        updated_record: UpdateRecord,
         record_id: ObjectId,
         user_id: ObjectId,
     ) -> Result<(), ApiErrors> {
@@ -245,6 +245,15 @@ impl TMongoClient for MongoClient {
         }
         if let Some(username) = updated_record.username {
             update.insert("username", username);
+        }
+        if let Some(service) = updated_record.service {
+            update.insert("service", service);
+        }
+        if let Some(key) = updated_record.key {
+            update.insert("key", key);
+        }
+        if let Some(secret) = updated_record.secret {
+            update.insert("secret", secret);
         }
 
         self.get_client()

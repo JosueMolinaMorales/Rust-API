@@ -30,4 +30,5 @@ async fn rocket() -> _ {
         .mount("/password/", password_module::api())
         .mount("/secret/", secrets_module::api())
         .mount("/search", search_module::api())
+        //.mount("/record", record_module::api())
 }
