@@ -131,38 +131,6 @@ pub struct LoginForm {
     pub password: String,
 }
 
-/* Password Structs */
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PasswordRecord {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
-    pub service: String,  /* The Service the password belongs to */
-    pub password: String, /* The Password for the service */
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>, /* The email to login */
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub username: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<ObjectId>, /* The Object Id of the user who owns this record */
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResponsePasswordRecord {
-    pub id: String,
-    pub service: String,
-    pub password: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub username: Option<String>,
-    pub user_id: String,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateRecord  {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -179,18 +147,6 @@ pub struct UpdateRecord  {
     pub secret: Option<String>,
 }
 
-pub fn serialize_object_id<S>(
-    object_id: &Option<ObjectId>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    match object_id {
-        Some(ref object_id) => serializer.serialize_some(object_id.to_string().as_str()),
-        None => serializer.serialize_none(),
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Record {
@@ -243,25 +199,6 @@ pub struct ResponseRecord {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
-}
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct SecretRecord {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<ObjectId>,
-
-    pub key: String,
-    pub secret: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct UpdateSecretRecord {
-    pub key: Option<String>,
-    pub secret: Option<String>,
 }
 
 #[derive(Responder)]

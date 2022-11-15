@@ -1,8 +1,8 @@
 use crate::drivers::mongodb::mongo_trait::{MockTMongoClient, TMongoClient};
-use crate::modules::{auth_module, password_module};
+use crate::modules::{auth_module, record_module};
 use crate::shared::types::{
-    ApiErrors, AuthResponse, LoginForm, PasswordRecord, RegistrationForm, UpdatePasswordRecord,
-    User,
+    ApiErrors, AuthResponse, LoginForm, RegistrationForm,
+    User, Record, UpdateRecord, RecordTypes,
 };
 use bson::doc;
 use bson::oid::ObjectId;
@@ -49,13 +49,16 @@ async fn mock_mongo_client() -> MockTMongoClient {
             return Err(ApiErrors::NotFound("Record not found".to_string()));
         }
 
-        Ok(PasswordRecord {
+        Ok(Record {
             id: Some(record_id),
-            service: "Netflix".to_string(),
-            password: ENCRYPTED_PASSWORD.to_string(),
+            service: Some("Netflix".to_string()),
+            password: Some(ENCRYPTED_PASSWORD.to_string()),
             email: Some("email@email.com".to_string()),
             username: Some("username".to_string()),
             user_id: Some(user_id),
+            record_type: RecordTypes::Password,
+            key: None,
+            secret: None
         })
     });
 
@@ -92,7 +95,7 @@ async fn build_test_rocket() -> Rocket<Build> {
     rocket::build()
         .manage(Box::new(db) as Box<dyn TMongoClient>)
         .mount("/auth", auth_module::api())
-        .mount("/password/", password_module::api())
+        .mount("/password/", record_module::api())
 }
 
 /* Auth Tests */
@@ -236,6 +239,7 @@ async fn not_valid_auth_header() {
 #[rocket::async_test]
 async fn create_record_success() {
     let req_body = doc! {
+        "record_type": "Password",
         "service": "Netflix".to_string(),
         "password": "password123!".to_string(),
         "email": "molinajosue92@test.com".to_string(),
@@ -254,10 +258,13 @@ async fn create_record_success() {
 
 #[rocket::async_test]
 async fn update_record_success() {
-    let req_body = UpdatePasswordRecord {
+    let req_body = UpdateRecord {
         password: Some("new_password123".to_string()),
         email: Some("new_email@as.com".to_string()),
         username: None,
+        service: None,
+        key: None,
+        secret: None
     };
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
 
@@ -273,10 +280,13 @@ async fn update_record_success() {
 
 #[rocket::async_test]
 async fn update_record_fail_record_dne() {
-    let req_body = UpdatePasswordRecord {
+    let req_body = UpdateRecord {
         password: Some("new_password123".to_string()),
         email: Some("new_email@as.com".to_string()),
         username: None,
+        service: None,
+        key: None,
+        secret: None
     };
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
 
@@ -292,10 +302,13 @@ async fn update_record_fail_record_dne() {
 
 #[rocket::async_test]
 async fn update_record_fail_user_dne() {
-    let req_body = UpdatePasswordRecord {
+    let req_body = UpdateRecord {
         password: Some("new_password123".to_string()),
         email: Some("new_email@as.com".to_string()),
         username: None,
+        service: None,
+        key: None,
+        secret: None
     };
     let client = Client::tracked(build_test_rocket().await).await.unwrap();
 

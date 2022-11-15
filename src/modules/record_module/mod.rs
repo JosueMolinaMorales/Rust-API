@@ -22,7 +22,7 @@ use rocket::{http::Status, serde::json::Json, State};
     DELETE /password/:id -> Delete a password record
 */
 
-#[get("/records/<user_id>")]
+#[get("/<user_id>/all")]
 pub async fn get_all_user_records(
     db: &State<Box<dyn TMongoClient>>,
     user_id: String,

@@ -16,12 +16,17 @@ pub struct SearchResponse {
     id: String,
     user_id: String,
     record_type: RecordTypes,
+    #[serde(skip_serializing_if = "Option::is_none")]
     service: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     username: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     password: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     email: Option<String>,
-
+    #[serde(skip_serializing_if = "Option::is_none")]
     key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     secret: Option<String>,
 }
 
@@ -56,8 +61,7 @@ pub struct SearchParamsBuilder {
     pub password_record: Option<RecordTypes>,
     pub secret_record: Option<RecordTypes>,
     pub page: Option<u64>,
-    pub service: Option<String>,
-    pub key: Option<String>,
+    pub query: Option<String>,
     pub limit: Option<i64>,
 }
 
@@ -67,9 +71,8 @@ impl SearchParamsBuilder {
             user_id,
             password_record: None,
             secret_record: None,
+            query: None,
             page: None,
-            service: None,
-            key: None,
             limit: None,
         }
     }
@@ -87,18 +90,13 @@ impl SearchParamsBuilder {
         self
     }
 
-    pub fn add_service(mut self, service: Option<String>) -> Self {
-        self.service = service;
-        self
-    }
-
-    pub fn add_key(mut self, key: Option<String>) -> Self {
-        self.key = key;
-        self
-    }
-
     pub fn add_limit(mut self, limit: Option<i64>) -> Self {
         self.limit = limit;
+        self
+    }
+
+    pub fn add_query(mut self, query: Option<String>) -> Self {
+        self.query = query;
         self
     }
 
@@ -108,8 +106,7 @@ impl SearchParamsBuilder {
             password_record: self.password_record,
             secret_record: self.secret_record,
             page: self.page,
-            service: self.service,
-            key: self.key,
+            query: self.query,
             limit: self.limit,
         }
     }
@@ -121,8 +118,7 @@ pub struct SearchParams {
     pub password_record: Option<RecordTypes>,
     pub secret_record: Option<RecordTypes>,
     pub page: Option<u64>,
-    pub service: Option<String>,
-    pub key: Option<String>,
+    pub query: Option<String>,
     pub limit: Option<i64>,
 }
 
@@ -133,82 +129,17 @@ use serde::{Deserialize, Serialize};
 use crate::{
     drivers::mongodb::mongo_trait::TMongoClient,
     shared::{
-        encryption::decrypt_password,
         jwt_service::Token,
-        types::{ApiErrors, ResponsePasswordRecord, RecordTypes},
+        types::{ApiErrors, RecordTypes},
     },
 };
 
-#[get("/secret/<user_id>?<page>&<service>&<key>&<limit>")]
-async fn search_secret_records(
-    db: &State<Box<dyn TMongoClient>>,
-    user_id: String,
-    page: Option<u64>,
-    service: Option<String>,
-    key: Option<String>,
-    limit: Option<i64>,
-    token: Token,
-) -> Result<Json<Vec<SearchResponse>>, ApiErrors> {
-    // Validate user_id
-    let user_id = ObjectId::parse_str(user_id)
-        .map_err(|_| ApiErrors::BadRequest("Provided Id is not an object id".to_string()))?;
-
-    // Check to see if the provided user_id is the same as the token.id
-    if user_id != token.id {
-        return Err(ApiErrors::BadRequest("Not Authorized".to_string()));
-    }
-
-    let search_params = SearchParamsBuilder::new(user_id)
-        .add_key(key)
-        .add_limit(limit)
-        .add_page(page)
-        .add_service(service)
-        .build();
-
-    /* Call To component: component::search(db, search_params) */
-   let record_vec = component::search_password_records(db, user_id, search_params).await?;
-   
-    Ok(Json(record_vec))
-}
-
-#[get("/password/<user_id>?<page>&<service>&<key>&<limit>")]
-async fn search_password_records(
-    db: &State<Box<dyn TMongoClient>>,
-    user_id: String,
-    page: Option<u64>,
-    service: Option<String>,
-    key: Option<String>,
-    limit: Option<i64>,
-    token: Token,
-) -> Result<Json<Vec<SearchResponse>>, ApiErrors> {
-    // Validate user_id
-    let user_id = ObjectId::parse_str(user_id)
-        .map_err(|_| ApiErrors::BadRequest("Provided Id is not an object id".to_string()))?;
-
-    // Check to see if the provided user_id is the same as the token.id
-    if user_id != token.id {
-        return Err(ApiErrors::BadRequest("Not Authorized".to_string()));
-    }
-
-    let search_params = SearchParamsBuilder::new(user_id)
-        .add_key(key)
-        .add_limit(limit)
-        .add_page(page)
-        .add_service(service)
-        .build();
-
-    /* Call To component: component::search(db, search_params) */
-    let record_vec = component::search_secret_records(db, search_params).await?;
-    Ok(Json(record_vec))
-}
-
-#[get("/record/<user_id>?<page>&<service>&<key>&<limit>")]
+#[get("/record/<user_id>?<page>&<limit>&<query>")]
 async fn search_records(
     db: &State<Box<dyn TMongoClient>>,
     user_id: String,
     page: Option<u64>,
-    service: Option<String>,
-    key: Option<String>,
+    query: Option<String>,
     limit: Option<i64>,
     token: Token,
 ) -> Result<Json<Vec<SearchResponse>>, ApiErrors>{
@@ -222,29 +153,16 @@ async fn search_records(
     }
 
     let search_params = SearchParamsBuilder::new(user_id)
-        .add_key(key)
         .add_limit(limit)
         .add_page(page)
-        .add_service(service)
+        .add_query(query)
         .build();
-    let mut response_vector: Vec<SearchResponse> = vec![];
 
-    
-    let mut password_records = component::search_password_records(db, user_id, search_params.clone()).await?;
-    
-    response_vector.append(&mut password_records);
+    let records = component::search_records(db, search_params).await?;
 
-    let mut secret_records = component::search_secret_records(db, search_params).await?;
-
-    response_vector.append(&mut secret_records);
-
-    Ok(Json(response_vector))
+    Ok(Json(records))
 }
 
 pub fn api() -> Vec<rocket::Route> {
-    rocket::routes![
-        search_password_records, 
-        search_secret_records,
-        search_records
-    ]
+    rocket::routes![search_records]
 }
