@@ -62,8 +62,8 @@ async fn mock_mongo_client() -> MockTMongoClient {
         })
     });
 
-    mock.expect_get_user().returning(|username| {
-        if *username == DNE_USERNANME.to_string() {
+    mock.expect_get_user().returning(|email| {
+        if *email == DNE_EMAIL.to_string() {
             return Err(ApiErrors::BadRequest(
                 "Username or Password is incorrect".to_string(),
             ));
@@ -157,7 +157,7 @@ async fn register_fail_username_exist() {
 #[rocket::async_test]
 async fn login_success() {
     let req_body = LoginForm {
-        username: USERNAME_EXISTS.clone().to_string(),
+        email: EMAIL_EXISTS.clone().to_string(),
         password: PASSWORD.to_string(),
     };
 
@@ -172,7 +172,7 @@ async fn login_success() {
 #[rocket::async_test]
 async fn login_fail_wrong_password() {
     let req_body = LoginForm {
-        username: USERNAME_EXISTS.clone().to_string(),
+        email: EMAIL_EXISTS.clone().to_string(),
         password: WRONG_PASSWORD.to_string(),
     };
 
@@ -187,7 +187,7 @@ async fn login_fail_wrong_password() {
 #[rocket::async_test]
 async fn login_fail_wrong_username() {
     let req_body = LoginForm {
-        username: DNE_USERNANME.clone().to_string(),
+        email: DNE_EMAIL.clone().to_string(),
         password: WRONG_PASSWORD.to_string(),
     };
 

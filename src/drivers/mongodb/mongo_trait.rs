@@ -13,7 +13,7 @@ pub trait TMongoClient: Send + Sync {
     async fn email_exists(&self, email: &str) -> Result<bool, ApiErrors>;
     async fn username_exists(&self, username: &str) -> Result<bool, ApiErrors>;
     async fn insert_user(&self, user: &User) -> Result<ObjectId, ApiErrors>;
-    async fn get_user(&self, username: &str) -> Result<User, ApiErrors>;
+    async fn get_user(&self, email: &str) -> Result<User, ApiErrors>;
 
     // Password Record Methods
     async fn insert_record(&self, record: Record) -> Result<ObjectId, ApiErrors>;

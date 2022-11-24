@@ -130,12 +130,12 @@ impl TMongoClient for MongoClient {
         Ok(res)
     }
 
-    async fn get_user(&self, username: &str) -> Result<User, ApiErrors> {
+    async fn get_user(&self, email: &str) -> Result<User, ApiErrors> {
         let user = self
             .get_client()
             .database(&get_db_name())
             .collection::<User>("users")
-            .find_one(doc! { "username": username }, None)
+            .find_one(doc! { "email": email }, None)
             .await
             .map_err(|err| ApiErrors::ServerError(err.to_string()))?
             .ok_or_else(|| ApiErrors::BadRequest("User not found".to_string()))?;

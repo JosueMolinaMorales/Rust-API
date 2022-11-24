@@ -127,7 +127,7 @@ pub struct AuthUser {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(crate = "rocket::serde")]
 pub struct LoginForm {
-    pub username: String,
+    pub email: String,
     pub password: String,
 }
 
