@@ -3,7 +3,7 @@ extern crate rocket;
 extern crate dotenv;
 use dotenv::dotenv;
 use crate::drivers::mongodb::mongo_trait::TMongoClient;
-use modules::{auth_module, password_module, search_module, secrets_module};
+use modules::{auth_module, record_module, search_module};
 pub mod drivers;
 pub mod modules;
 pub mod shared;
@@ -29,7 +29,6 @@ async fn rocket() -> _ {
         .manage(Box::new(db) as Box<dyn TMongoClient>)
         .mount("/", routes![index])
         .mount("/auth/", auth_module::api())
-        .mount("/password/", password_module::api())
-        .mount("/secret/", secrets_module::api())
         .mount("/search", search_module::api())
+        .mount("/record", record_module::api())
 }

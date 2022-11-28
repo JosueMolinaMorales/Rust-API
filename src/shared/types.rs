@@ -127,44 +127,41 @@ pub struct AuthUser {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(crate = "rocket::serde")]
 pub struct LoginForm {
-    pub username: String,
+    pub email: String,
     pub password: String,
 }
 
-/* Password Structs */
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PasswordRecord {
-    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
-    pub service: String,  /* The Service the password belongs to */
-    pub password: String, /* The Password for the service */
-
+pub struct UpdateRecord  {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>, /* The email to login */
-
+    pub service: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub username: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<ObjectId>, /* The Object Id of the user who owns this record */
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResponsePasswordRecord {
-    pub id: String,
-    pub service: String,
-    pub password: String,
-
+    pub password: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
-
     #[serde(skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
-    pub user_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
 }
 
+
 #[derive(Debug, Serialize, Deserialize)]
-pub struct UpdatePasswordRecord {
+pub struct Record {
+    pub record_type: RecordTypes,
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<ObjectId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub password: Option<String>,
 
@@ -175,37 +172,33 @@ pub struct UpdatePasswordRecord {
     pub username: Option<String>,
 }
 
-pub fn serialize_object_id<S>(
-    object_id: &Option<ObjectId>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    match object_id {
-        Some(ref object_id) => serializer.serialize_some(object_id.to_string().as_str()),
-        None => serializer.serialize_none(),
-    }
+#[derive(Debug, Clone, Eq, PartialEq, FromFormField, Serialize, Deserialize)]
+pub enum RecordTypes {
+    Password,
+    Secret,
 }
-
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct SecretRecord {
+pub struct ResponseRecord {
+    pub record_type: RecordTypes,
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<ObjectId>,
+    pub id: Option<String>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_id: Option<ObjectId>,
-
-    pub key: String,
-    pub secret: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(crate = "rocket::serde")]
-pub struct UpdateSecretRecord {
+    pub user_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub secret: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub username: Option<String>,
 }
 
 #[derive(Responder)]

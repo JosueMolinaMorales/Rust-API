@@ -61,7 +61,7 @@ pub async fn login(
     let err_msg = String::from("Username or password is incorrect");
 
     // Check to see if user exists
-    let user = match db.get_user(&info.username.to_lowercase()).await {
+    let user = match db.get_user(&info.email.to_lowercase()).await {
         Ok(user) => user,
         Err(_) => return Err(ApiErrors::BadRequest(err_msg)),
     };

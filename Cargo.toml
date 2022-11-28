@@ -16,6 +16,7 @@ hmac = "0.12.1"
 sha2 = "0.10.2"
 bson = "2.3.0"
 serde = "1.0.139"
+regex = "1"
 
 [dependencies.rocket]
 version = "0.5.0-rc.2"
