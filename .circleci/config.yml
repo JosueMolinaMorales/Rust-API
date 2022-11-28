@@ -46,7 +46,7 @@ workflows:
             - check-semver
           context:
             - DOCKERHUB
-          image: "jmorales15/$CIRCLE_PROJECT_REPONAME"
+          image: "jmorales15/password-manager"
           tag: $(cat ./Cargo.toml | grep version | head -1 | grep -o '"[^"]\+"' | sed -e 's/^"//' -e 's/"$//')
           filters:
             branches:
@@ -56,7 +56,7 @@ workflows:
           name: publish-docker-prod
           context:
             - DOCKERHUB
-          image: "jmorales15/$CIRCLE_PROJECT_REPONAME"
+          image: "jmorales15/password-manager"
           tag: latest
           filters:
             branches:
