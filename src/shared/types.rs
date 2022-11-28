@@ -119,6 +119,7 @@ pub struct PartialUser {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(crate = "rocket::serde")]
 pub struct AuthUser {
+    pub id: String,
     pub name: String,
     pub email: String,
     pub username: String,
