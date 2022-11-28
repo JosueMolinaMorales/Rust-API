@@ -1,9 +1,49 @@
-FROM rust
+####################################################################################################
+## Builder
+####################################################################################################
+FROM rust:latest AS builder
 
-WORKDIR /bin/rust-api
+RUN rustup target add x86_64-unknown-linux-musl
+RUN apt update && apt install -y musl-tools musl-dev
+RUN update-ca-certificates
 
-COPY ./ /bin/rust-api
+# Create appuser
+ENV USER=myip
+ENV UID=10001
 
-RUN cargo build --release
+RUN adduser \
+    --disabled-password \
+    --gecos "" \
+    --home "/nonexistent" \
+    --shell "/sbin/nologin" \
+    --no-create-home \
+    --uid "${UID}" \
+    "${USER}"
 
-CMD ["./target/release/rust-api"]
+
+WORKDIR /password-manager
+
+COPY . .
+
+RUN cargo build --target x86_64-unknown-linux-musl --release
+
+####################################################################################################
+## Final image
+####################################################################################################
+FROM debian:buster-slim
+
+# Import from builder.
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group /etc/group
+
+WORKDIR /password-manager
+
+# Copy our build
+COPY --from=builder /password-manager/target/x86_64-unknown-linux-musl/release/rust-api ./
+
+ENV ROCKET_ADDRESS=0.0.0.0
+EXPOSE 8000
+# Use an unprivileged user.
+USER myip:myip
+
+CMD ["/password-manager/rust-api"]

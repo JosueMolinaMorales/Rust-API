@@ -22,6 +22,8 @@ async fn rocket() -> _ {
 
     let mut db = drivers::mongodb::MongoClient::new();
     db.connect().await;
+    
+    println!("Password manager api is now listening on port 8000");
 
     rocket::build()
         .manage(Box::new(db) as Box<dyn TMongoClient>)
