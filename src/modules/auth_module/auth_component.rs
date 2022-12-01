@@ -46,6 +46,7 @@ pub async fn register(
 
     Ok(AuthResponse {
         user: AuthUser {
+            id: id.to_string().clone(),
             name: String::from(&register_form.name),
             email: String::from(&register_form.email),
             username: String::from(&register_form.username),
@@ -82,6 +83,7 @@ pub async fn login(
 
     Ok(AuthResponse {
         user: AuthUser {
+            id: id.to_string().clone(),
             email: user.email,
             name: user.name,
             username: user.username,
