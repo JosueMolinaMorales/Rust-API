@@ -39,7 +39,7 @@
       - [Response Body](#response-body-6)
       - [Potentional Errors](#potentional-errors-6)
   - [Search Module](#search-module)
-    - [GET /search/record/\<user\_id\>?\&\&](#get-searchrecorduser_id)
+    - [GET /search/record/\<user\_id\>?page=\&limit=\&query=](#get-searchrecorduser_idpagelimitquery)
       - [Parameters](#parameters)
       - [Authorization](#authorization-7)
       - [Request Body](#request-body-7)
@@ -281,7 +281,7 @@ No Body but reponse code is 204
 
 ## Search Module
 
-### GET /search/record/<user_id>?<page>&<limit>&<query>
+### GET /search/record/<user_id>?page=&limit=&query=
 Search a users record
 
 #### Parameters
