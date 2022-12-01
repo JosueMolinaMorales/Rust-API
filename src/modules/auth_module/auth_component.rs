@@ -58,7 +58,7 @@ pub async fn login(
     db: &State<Box<dyn TMongoClient>>,
     info: LoginForm,
 ) -> Result<AuthResponse, ApiErrors> {
-    let err_msg = String::from("Username or password is incorrect");
+    let err_msg = String::from("Email or password is incorrect");
 
     // Check to see if user exists
     let user = match db.get_user(&info.email.to_lowercase()).await {
