@@ -148,6 +148,13 @@ pub struct UpdateRecord  {
     pub secret: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateUser {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    pub password: Option<String>
+}
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Record {

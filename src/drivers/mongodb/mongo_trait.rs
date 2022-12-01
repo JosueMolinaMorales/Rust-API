@@ -1,6 +1,6 @@
 use bson::oid::ObjectId;
 use mongodb::Cursor;
-use crate::{shared::types::{ApiErrors, User, Record, UpdateRecord}, modules::search_module::SearchParams};
+use crate::{shared::types::{ApiErrors, User, Record, UpdateRecord, AuthUser, UpdateUser}, modules::search_module::SearchParams};
 
 #[cfg(test)]
 use mockall::automock;
@@ -39,4 +39,16 @@ pub trait TMongoClient: Send + Sync {
         &self,
         params: SearchParams,
     ) -> Result<Cursor<Record>, ApiErrors>;
+
+    // User Modules
+    async fn get_user_by_id(
+        &self,
+        user_id: ObjectId
+    ) -> Result<AuthUser, ApiErrors>;
+
+    async fn update_user_fields(
+        &self,
+        user_id: ObjectId,
+        update_user: UpdateUser
+    ) -> Result<(), ApiErrors>;
 }

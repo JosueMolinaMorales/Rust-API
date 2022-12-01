@@ -45,6 +45,17 @@
       - [Request Body](#request-body-7)
       - [Response Body](#response-body-7)
       - [Potentional Errors](#potentional-errors-7)
+  - [User Module](#user-module)
+    - [GET /user/:user\_id](#get-useruser_id)
+      - [Authorization](#authorization-8)
+      - [Request Body](#request-body-8)
+      - [Response Body](#response-body-8)
+      - [Potentional Errors](#potentional-errors-8)
+    - [PATCH /user/:user\_id](#patch-useruser_id)
+      - [Authorization](#authorization-9)
+      - [Request Body](#request-body-9)
+      - [Response Body](#response-body-9)
+      - [Potentional Errors](#potentional-errors-9)
 
 
 # Modules
@@ -323,3 +334,58 @@ None
 | ---------- | ------------ |
 | 400 | User id is not a valid object id |
 | 401 | User id and Id in token do not match |
+
+## User Module
+
+### GET /user/:user_id
+Get the user object
+
+#### Authorization
+A valid bearer token is required
+
+#### Request Body
+None
+
+#### Response Body
+
+```
+{
+    id: String,
+    email: String,
+    username: String,
+    name: String
+}
+```
+
+#### Potentional Errors
+
+| Error Code | Error Reason |
+| ---------- | ------------ |
+| 400 | User id is not a valid object id |
+| 401 | User id and Id in token do not match |
+| 404 | User does not exist |
+
+### PATCH /user/:user_id
+Update either the users email or password
+
+#### Authorization
+A valid bearer token is required
+
+#### Request Body
+```
+{
+    username: Option<String>,
+    email: Option<String>
+}
+```
+
+#### Response Body
+None, return code is 204
+
+#### Potentional Errors
+
+| Error Code | Error Reason |
+| ---------- | ------------ |
+| 400 | User id is not a valid object id |
+| 401 | User id and Id in token do not match |
+| 404 | User does not exist |

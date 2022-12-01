@@ -2,7 +2,7 @@
 extern crate rocket;
 extern crate dotenv;
 use dotenv::dotenv;
-use crate::drivers::mongodb::mongo_trait::TMongoClient;
+use crate::{drivers::mongodb::mongo_trait::TMongoClient, modules::user_module};
 use modules::{auth_module, record_module, search_module};
 pub mod drivers;
 pub mod modules;
@@ -31,4 +31,5 @@ async fn rocket() -> _ {
         .mount("/auth/", auth_module::api())
         .mount("/search", search_module::api())
         .mount("/record", record_module::api())
+        .mount("/user", user_module::api())
 }
