@@ -13,12 +13,12 @@
       - [Response Body](#response-body-1)
       - [Potentional Errors](#potentional-errors-1)
   - [Record Module](#record-module)
-    - [GET /record/\<user\_id\>/all](#get-recorduser_idall)
+    - [GET /record/:user\_id/all](#get-recorduser_idall)
       - [Authorization](#authorization-2)
       - [Request Body](#request-body-2)
       - [Response Body](#response-body-2)
       - [Potentional Errors](#potentional-errors-2)
-    - [GET /record/](#get-record)
+    - [GET /record/:id](#get-recordid)
       - [Authorization](#authorization-3)
       - [Request Body](#request-body-3)
       - [Response Body](#response-body-3)
@@ -28,23 +28,24 @@
       - [Request Body](#request-body-4)
       - [Response Body](#response-body-4)
       - [Potentional Errors](#potentional-errors-4)
-    - [POST /record/](#post-record-1)
+    - [PATCH /record/:id](#patch-recordid)
       - [Authorization](#authorization-5)
       - [Request Body](#request-body-5)
       - [Response Body](#response-body-5)
       - [Potentional Errors](#potentional-errors-5)
-    - [DELETE /record/](#delete-record)
+    - [DELETE /record/:id](#delete-recordid)
       - [Authorization](#authorization-6)
       - [Request Body](#request-body-6)
       - [Response Body](#response-body-6)
       - [Potentional Errors](#potentional-errors-6)
   - [Search Module](#search-module)
-    - [GET /search/record/\<user\_id\>?page=\&limit=\&query=](#get-searchrecorduser_idpagelimitquery)
+    - [GET /search/record/:user\_id?page=\&limit=\&query=](#get-searchrecorduser_idpagelimitquery)
       - [Parameters](#parameters)
       - [Authorization](#authorization-7)
       - [Request Body](#request-body-7)
       - [Response Body](#response-body-7)
       - [Potentional Errors](#potentional-errors-7)
+
 
 # Modules
 * [Auth Module](#auth-module)
@@ -119,7 +120,7 @@ No Auth Required
 
 ## Record Module
 
-### GET /record/<user_id>/all
+### GET /record/:user_id/all
 Get all the records for a user
 
 #### Authorization
@@ -154,8 +155,8 @@ None
 | 401 | User id and Id in token do not match |
 
 
-### GET /record/<id>
-Get a specific record
+### GET /record/:id
+Get a specific record, :id is id of record
 
 #### Authorization
 A valid bearer token is required
@@ -227,8 +228,8 @@ A valid bearer token is required
 | 400 | User id is not a valid object id |
 | 401 | User id and Id in token do not match |
 
-### POST /record/<id>
-Update a record
+### PATCH /record/:id
+Update a record, :id is id of record
 
 #### Authorization
 A valid bearer token is required
@@ -260,8 +261,8 @@ No body but response Code: 204
 | 401 | User id and Id in token do not match |
 | 404 | Record was not found |
 
-### DELETE /record/<id>
-Delete a record
+### DELETE /record/:id
+Delete a record, :id is id of record
 
 #### Authorization
 A valid bearer token is required
@@ -281,7 +282,7 @@ No Body but reponse code is 204
 
 ## Search Module
 
-### GET /search/record/<user_id>?page=&limit=&query=
+### GET /search/record/:user_id?page=&limit=&query=
 Search a users record
 
 #### Parameters
