@@ -152,7 +152,8 @@ pub struct UpdateRecord  {
 pub struct UpdateUser {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
-    pub password: Option<String>
+    pub new_password: Option<String>,
+    pub password: String
 }
 
 

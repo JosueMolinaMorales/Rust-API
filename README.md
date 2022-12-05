@@ -374,8 +374,9 @@ A valid bearer token is required
 #### Request Body
 ```
 {
-    username: Option<String>,
-    email: Option<String>
+    new_password: Option<String>,
+    email: Option<String>,
+    password: String
 }
 ```
 
@@ -386,6 +387,6 @@ None, return code is 204
 
 | Error Code | Error Reason |
 | ---------- | ------------ |
-| 400 | User id is not a valid object id |
+| 400 | User id is not a valid object id, Password does not match, new_password or email not sent |
 | 401 | User id and Id in token do not match |
 | 404 | User does not exist |

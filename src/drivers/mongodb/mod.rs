@@ -270,7 +270,7 @@ impl TMongoClient for MongoClient {
         if let Some(email) = update_user.email {
             query.insert("email", email);
         }
-        if let Some(password) = update_user.password {
+        if let Some(password) = update_user.new_password {
             query.insert("password", password);
         }
 
