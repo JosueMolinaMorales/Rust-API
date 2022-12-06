@@ -32,6 +32,17 @@ pub async fn update_user(
         return Err(ApiErrors::BadRequest("Password is incorrect".to_string()))
     }
 
+    // Verify the email does not exist
+    if let Some(email) = updated_user.email.clone() {
+        if user.email == email {
+            return Err(ApiErrors::BadRequest("Emails are the same.".to_string()));
+        }
+        if db.get_user(&email).await.is_ok() {
+            // a user with this email exists
+            return Err(ApiErrors::BadRequest("Email already exists".to_string()));
+        }
+    }
+
     // Hash password
     if let Some(password) = updated_user.new_password {
         updated_user.new_password = Some(bcrypt::hash(password).map_err(|err| ApiErrors::ServerError(err.to_string()))?)
