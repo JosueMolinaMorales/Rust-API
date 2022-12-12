@@ -13,6 +13,7 @@ pub mod component;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchResponse {
+    #[serde(rename = "_id")]
     id: String,
     user_id: String,
     record_type: RecordTypes,
