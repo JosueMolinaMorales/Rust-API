@@ -1,6 +1,6 @@
 pub mod mongo_trait;
 
-use crate::{drivers::mongodb::mongo_trait::TMongoClient, shared::types::{Record, UpdateRecord}};
+use crate::{drivers::mongodb::mongo_trait::TMongoClient, shared::types::{Record, UpdateRecord, AuthUser, UpdateUser}};
 use bson::{doc, oid::ObjectId, Document, Regex};
 use mongodb::{
     options::{ClientOptions, FindOptions},
@@ -239,4 +239,53 @@ impl TMongoClient for MongoClient {
         Ok(())
     }
 
+    async fn get_user_by_id(
+        &self,
+        user_id: ObjectId,
+    ) -> Result<AuthUser, ApiErrors> {
+        self.get_client()
+            .database(&get_db_name())
+            .collection::<User>("users")
+            .find_one(
+                doc! { "_id": user_id }, 
+                None
+            ).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?
+            .map(|user_doc|
+                Ok(AuthUser { 
+                    id: user_doc.id.ok_or(ApiErrors::ServerError("Object id was not found".to_string()))?.to_string(), 
+                    name: user_doc.name, 
+                    email: user_doc.email,
+                    username: user_doc.username 
+                })
+            ).ok_or(ApiErrors::NotFound("User not found".to_string()))?
+    }
+
+    async fn update_user_fields(
+        &self,
+        user_id: ObjectId,
+        update_user: UpdateUser
+    ) -> Result<(), ApiErrors> {
+        let mut query = Document::new();
+        if let Some(email) = update_user.email {
+            query.insert("email", email);
+        }
+        if let Some(password) = update_user.new_password {
+            query.insert("password", password);
+        }
+
+        self.get_client()
+            .database(&get_db_name())
+            .collection::<User>("users")
+            .find_one_and_update(
+                doc! { "_id": user_id }, 
+                doc! { "$set": query }, 
+                None
+            ).await
+            .map_err(|err| ApiErrors::ServerError(err.to_string()))?
+            .ok_or(ApiErrors::NotFound("User not found".to_string()))?;
+
+        Ok(())
+            
+    }
 }

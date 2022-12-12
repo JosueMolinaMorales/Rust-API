@@ -1,0 +1,72 @@
+version: 2.1
+
+orbs: 
+  do-cli: digitalocean/cli@0.1.1
+  docker: circleci/docker@2.0.3
+
+executors:
+  rust-executor:
+    working_directory: ~/rust-api
+    docker:
+      - image: cimg/rust:1.65.0
+
+jobs:
+  check-semver:
+    executor: rust-executor
+    parameters:
+      tag:
+        type: string
+    steps:
+      - run:
+          name: "Check semantic version"
+          command: >
+            if curl --silent -f -lSL "https://index.docker.io/v1/repositories/jmorales15/password-manager/tags/<<parameters.tag>>" > /dev/null; then
+                echo "<<parameters.tag>> already exists in the ${CIRCLE_PROJECT_REPONAME} on dockerhub"
+                exit 1
+            fi
+  
+  deploy-digitalocean:
+    executor: do-cli/default
+    steps:
+      - do-cli/install
+      - do-cli/initialize:
+          digitalocean-access-token: DIGITAL_OCEAN_ACCESS_TOKEN
+      - run:
+          name: Create Digital Ocean Deployment
+          command: >
+            doctl apps create-deployment $DIGITAL_OCEAN_APP_ID --verbose true
+workflows:
+  deploy-production:
+    jobs:
+      - check-semver:
+          tag: $(cat ./Cargo.toml | grep version | head -1 | grep -o '"[^"]\+"' | sed -e 's/^"//' -e 's/"$//')
+      
+      - docker/publish:
+          requires:
+            - check-semver
+          context:
+            - DOCKERHUB
+          image: "jmorales15/password-manager"
+          tag: $(cat ./Cargo.toml | grep version | head -1 | grep -o '"[^"]\+"' | sed -e 's/^"//' -e 's/"$//')
+          filters:
+            branches:
+              only: /main/
+
+      - docker/publish:
+          name: publish-docker-prod
+          context:
+            - DOCKERHUB
+          image: "jmorales15/password-manager"
+          tag: latest
+          filters:
+            branches:
+              only: /main/
+
+      - deploy-digitalocean:
+          context:
+            - DIGITALOCEAN
+          requires:
+            - publish-docker-prod
+          filters:
+            branches:
+              only: /main/

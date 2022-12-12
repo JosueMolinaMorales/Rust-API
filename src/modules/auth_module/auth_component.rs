@@ -46,6 +46,7 @@ pub async fn register(
 
     Ok(AuthResponse {
         user: AuthUser {
+            id: id.to_string().clone(),
             name: String::from(&register_form.name),
             email: String::from(&register_form.email),
             username: String::from(&register_form.username),
@@ -58,7 +59,7 @@ pub async fn login(
     db: &State<Box<dyn TMongoClient>>,
     info: LoginForm,
 ) -> Result<AuthResponse, ApiErrors> {
-    let err_msg = String::from("Username or password is incorrect");
+    let err_msg = String::from("Email or password is incorrect");
 
     // Check to see if user exists
     let user = match db.get_user(&info.email.to_lowercase()).await {
@@ -82,6 +83,7 @@ pub async fn login(
 
     Ok(AuthResponse {
         user: AuthUser {
+            id: id.to_string().clone(),
             email: user.email,
             name: user.name,
             username: user.username,
